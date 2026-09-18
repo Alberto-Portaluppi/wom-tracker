@@ -15,6 +15,7 @@ KCM.SimpleKCM {
     property alias cfg_bossTopN: bossTopNSpin.value
     property alias cfg_cardWidth: cardWidthSpin.value
     property alias cfg_cardHeight: cardHeightSpin.value
+    property alias cfg_historyDays: historyDaysSpin.value
 
     readonly property var periodModel: [
         { text: "Day", value: "day" },
@@ -75,6 +76,14 @@ KCM.SimpleKCM {
             from: 60
             to: 400
             stepSize: 5
+        }
+
+        QQC2.SpinBox {
+            id: historyDaysSpin
+            Kirigami.FormData.label: "History graph range (days):"
+            from: 7
+            to: 365
+            stepSize: 1
         }
     }
 }

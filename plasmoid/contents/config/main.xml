@@ -23,5 +23,8 @@
     <entry name="cardHeight" type="Int">
       <default>92</default>
     </entry>
+    <entry name="historyDays" type="Int">
+      <default>30</default>
+    </entry>
   </group>
 </kcfg>

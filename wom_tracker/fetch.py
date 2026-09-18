@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Fetches XP/boss KC data from the Wise Old Man API and writes a cache
-file for the KDE Plasma widget, plus appends a row to a local history DB."""
+file for the KDE Plasma widget. Also appends a row to a local history DB —
+the widget's history graph actually reads snapshots straight from the WOM
+API (deeper, real history), so this local DB isn't used for that yet; it's
+kept as a standing local record in case that ever changes."""
 
 import json
 import os

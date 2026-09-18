@@ -28,7 +28,7 @@ PlasmoidItem {
     readonly property var bossesData: root.womData.top_bosses ? root.womData.top_bosses : []
 
     property var historyPoints: []
-    readonly property int historyDays: 30
+    readonly property int historyDays: Plasmoid.configuration.historyDays
     onHistoryPointsChanged: historyCanvas.requestPaint()
 
     function fmt(n) {
@@ -36,16 +36,31 @@ PlasmoidItem {
         return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")
     }
 
-    function historySummaryText() {
-        if (root.historyPoints.length < 2) return ""
-        const first = root.historyPoints[0].xp
-        const last = root.historyPoints[root.historyPoints.length - 1].xp
-        const gained = last - first
-        const sign = gained >= 0 ? "+" : ""
-        return sign + root.fmt(gained) + " xp over the last " + root.historyDays + " days"
+    // Describes the actual span covered by the returned points, not the
+    // requested window — WOM may not have snapshots going back the full
+    // requested range (e.g. a freshly-tracked account), so this stays honest.
+    function formatSpan(ms) {
+        const hours = ms / 3600000
+        if (hours < 1) return "in the last " + Math.max(1, Math.round(ms / 60000)) + " min"
+        if (hours < 48) return "in the last " + Math.round(hours) + "h"
+        return "in the last " + Math.round(hours / 24) + " days"
     }
 
-    function openHistoryPopup() {
+    function historySummaryText() {
+        if (root.historyPoints.length < 2) return ""
+        const first = root.historyPoints[0]
+        const last = root.historyPoints[root.historyPoints.length - 1]
+        const gained = last.xp - first.xp
+        const sign = gained >= 0 ? "+" : ""
+        const spanMs = new Date(last.ts).getTime() - new Date(first.ts).getTime()
+        return sign + root.fmt(gained) + " xp " + root.formatSpan(spanMs)
+    }
+
+    function toggleHistoryPopup() {
+        if (historyDialog.visible) {
+            historyDialog.visible = false
+            return
+        }
         historyDialog.visible = true
         historySource.connectSource("python3 '" + root.historyScriptPath + "' " + root.historyDays)
     }
@@ -182,6 +197,7 @@ PlasmoidItem {
     PlasmaCore.Dialog {
         id: historyDialog
         visualParent: root
+        hideOnWindowDeactivate: true
 
         mainItem: ColumnLayout {
             id: historyForm
@@ -314,7 +330,7 @@ PlasmoidItem {
         MouseArea {
             anchors.fill: parent
             cursorShape: Qt.PointingHandCursor
-            onClicked: root.openHistoryPopup()
+            onClicked: root.toggleHistoryPopup()
         }
 
         Text {
