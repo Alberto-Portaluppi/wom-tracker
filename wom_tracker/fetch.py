@@ -30,11 +30,11 @@ DEFAULT_CONFIG = {
     "refresh_minutes": 30,
 }
 
-PERIOD_LABELS_PT = {
-    "day": "dia",
-    "week": "semana",
-    "month": "mês",
-    "year": "ano",
+PERIOD_LABELS = {
+    "day": "day",
+    "week": "week",
+    "month": "month",
+    "year": "year",
     "all_time": "total",
 }
 
@@ -143,7 +143,7 @@ def main() -> int:
     config = load_config()
     username = config["username"]
     period = config["period"]
-    period_label = PERIOD_LABELS_PT[period]
+    period_label = PERIOD_LABELS[period]
 
     api_post(f"/players/{username}")  # nudge a fresh snapshot; safe to ignore failures
 
@@ -163,8 +163,8 @@ def main() -> int:
     overall = player["latestSnapshot"]["data"]["skills"]["overall"]
     now = datetime.now(timezone.utc).isoformat()
     value_prefix = "" if period == "all_time" else "+"
-    skills_label = "Total XP" if period == "all_time" else f"XP ganho ({period_label})"
-    bosses_label = "Total KC" if period == "all_time" else f"KC ganho ({period_label})"
+    skills_label = "Total XP" if period == "all_time" else f"XP gained ({period_label})"
+    bosses_label = "Total KC" if period == "all_time" else f"KC gained ({period_label})"
 
     result = {
         "username": player["displayName"],
@@ -173,9 +173,11 @@ def main() -> int:
         "period": period,
         "period_label": period_label,
         "value_prefix": value_prefix,
-        "skills_header": f"Top 3 {skills_label}",
+        "skill_top_n": config["skill_top_n"],
+        "boss_top_n": config["boss_top_n"],
+        "skills_header": f"Top {config['skill_top_n']} {skills_label}",
         "top_skills": top_skills,
-        "bosses_header": f"Top 3 {bosses_label}",
+        "bosses_header": f"Top {config['boss_top_n']} {bosses_label}",
         "top_bosses": top_bosses,
         "card_width": config["card_width"],
         "card_height": config["card_height"],

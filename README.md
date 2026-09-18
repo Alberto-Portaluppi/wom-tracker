@@ -1,40 +1,53 @@
 # wom-tracker
 
-Widget de KDE Plasma 6 que mostra XP total, top 3 skills e top 3 bosses de
-uma conta do Old School RuneScape, usando a API do
-[Wise Old Man](https://docs.wiseoldman.net/).
+A KDE Plasma 6 widget that shows total XP, top skills, and top bosses for an
+Old School RuneScape account, using the [Wise Old Man](https://docs.wiseoldman.net/) API.
 
-## Como funciona
+## How it works
 
-- `wom_tracker/fetch.py`: script Python (sem dependências externas) que busca
-  os dados da conta configurada na API do WOM, calcula os top 3 e escreve:
-  - `~/.cache/wom-tracker/data.json` — cache lido pelo widget
-  - `~/.local/share/wom-tracker/history.db` — histórico (XP total por execução, em SQLite)
-- Um timer do systemd (`--user`) roda esse script periodicamente.
-- O widget (`plasmoid/`) lê o `data.json` via `DataSource` (engine `executable`,
-  `cat` no arquivo) e se atualiza sozinho no mesmo intervalo.
+- `wom_tracker/fetch.py`: a Python script (stdlib only, no dependencies) that
+  fetches the configured account's data from the WOM API, computes the top
+  skills/bosses, and writes:
+  - `~/.cache/wom-tracker/data.json` — the cache the widget reads
+  - `~/.local/share/wom-tracker/history.db` — a small history (total XP per run, in SQLite)
+- A systemd `--user` timer runs that script periodically.
+- The widget (`plasmoid/`) reads `data.json` via a `DataSource` (`executable`
+  engine, `cat`-ing the file) and refreshes itself on the same interval.
+- Settings live in `~/.config/wom-tracker/config.json`, editable either
+  directly or through the widget's own native **Configure...** dialog
+  (right-click the widget → Configure Wise Old Man Tracker), backed by a
+  standard KCFG schema (`plasmoid/contents/config/main.xml`).
 
-## Instalar
+## Install
 
 ```bash
 ./install.sh
 ```
 
-O instalador pergunta seu RSN, cria o timer do systemd, roda o fetch uma vez
-e instala o widget no Plasma. Depois é só clicar com o botão direito na área
-de trabalho → **Adicionar Widgets** → procurar **"Wise Old Man Tracker"**.
+The installer asks for your RSN, sets up the systemd timer, runs the fetch
+once, and installs the widget into Plasma. Then just right-click your
+desktop → **Add Widgets** → search for **"Wise Old Man Tracker"**.
 
-Se você já tinha o widget instalado antes e atualizou os arquivos, o
-`plasmashell` costuma ficar com uma versão em cache — reinicie ele pra pegar
-a atualização:
+If you already had the widget installed and updated the files, `plasmashell`
+usually keeps a cached version — restart it to pick up the update:
 
 ```bash
 systemctl --user restart plasma-plasmashell.service
 ```
 
-## Configurar
+If you've applied several in-place package upgrades to a *live* widget
+instance without restarting in between, plasmashell can end up with
+duplicated/stale context-menu actions. A plain restart usually fixes it; if
+not, remove the widget from the desktop and add it back fresh.
 
-Edite `~/.config/wom-tracker/config.json`:
+## Configuring
+
+The easiest way is right-clicking the widget → **Configure Wise Old Man
+Tracker...** → **General** tab: RSN, period, top N skills/bosses, and widget
+size are all there, applied immediately on OK/Apply.
+
+For settings not exposed in that dialog (like the refresh interval), edit
+`~/.config/wom-tracker/config.json` directly:
 
 ```json
 {
@@ -48,34 +61,33 @@ Edite `~/.config/wom-tracker/config.json`:
 }
 ```
 
-| Campo | Descrição |
+| Field | Description |
 |---|---|
-| `username` | RSN da conta a acompanhar |
-| `period` | `day`, `week`, `month`, `year` ou `all_time`. Com `all_time`, os top 3 são pelo total acumulado (XP/KC de carreira) em vez de ganho no período |
-| `skill_top_n` / `boss_top_n` | quantas skills/bosses mostrar (o layout foi pensado pra 3, valores maiores podem cortar) |
-| `card_width` / `card_height` | tamanho do widget em pixels — útil se o seu painel/monitor corta o widget (foi exatamente esse problema que motivou esse campo) |
-| `refresh_minutes` | intervalo do timer do systemd que busca dados novos |
+| `username` | RSN of the account to track |
+| `period` | `day`, `week`, `month`, `year`, or `all_time`. With `all_time`, the top lists rank by career total (XP/KC) instead of gains over a period |
+| `skill_top_n` / `boss_top_n` | how many skills/bosses to show (the layout is tuned for 3; larger values may get clipped) |
+| `card_width` / `card_height` | widget size in pixels — useful if your panel/monitor clips the widget |
+| `refresh_minutes` | how often the systemd timer fetches new data |
 
-Depois de editar, rode `python3 ~/.local/share/wom-tracker/fetch.py` uma vez
-(ou espere o próximo ciclo do timer) pra aplicar.
+After a manual edit, run `python3 ~/.local/share/wom-tracker/fetch.py` once
+(or wait for the next timer tick) to apply it.
 
-### Outras ideias de configuração (não implementadas ainda)
+### Other configuration ideas (not implemented yet)
 
-Fica como referência pra quem quiser contribuir:
+Left here for anyone who wants to contribute:
 
-- Escolher manualmente quais skills/bosses fixar, em vez de "top 3 automático"
-- Suporte a grupo/clã (WOM tem endpoints de group) em vez de só 1 conta
-- Cores customizáveis (hoje usa as cores do tema do Plasma)
-- Labels em inglês (hoje é só PT-BR)
-- Popup com gráfico de histórico ao clicar no widget (o `history.db` já existe, só falta a UI)
+- Manually pin specific skills/bosses instead of "auto top N"
+- Group/clan support (WOM has group endpoints) instead of a single account
+- Customizable colors (currently uses the Plasma theme's colors)
+- A history graph popup on click (`history.db` already collects the data, just needs a UI)
 
-## Atualizar manualmente
+## Manual refresh
 
 ```bash
 python3 ~/.local/share/wom-tracker/fetch.py
 ```
 
-## Desinstalar
+## Uninstall
 
 ```bash
 systemctl --user disable --now wom-tracker.timer
@@ -84,8 +96,8 @@ kpackagetool6 --type Plasma/Applet --remove org.awberto.womtracker
 rm -rf ~/.local/share/wom-tracker ~/.config/wom-tracker ~/.cache/wom-tracker
 ```
 
-## Requisitos
+## Requirements
 
 - KDE Plasma 6
-- Python 3 (só biblioteca padrão, sem `pip install`)
+- Python 3 (stdlib only, no `pip install`)
 - systemd `--user`
