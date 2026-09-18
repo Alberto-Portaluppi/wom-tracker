@@ -48,8 +48,8 @@ not, remove the widget from the desktop and add it back fresh.
 
 The easiest way is right-clicking the widget → **Configure Wise Old Man
 Tracker...** → **General** tab: RSN, period, top N skills/bosses, widget
-size, and the history graph's day range are all there, applied immediately
-on OK/Apply.
+size, the history graph's day range, and the rotation speed (when top N is
+higher than what fits) are all there, applied immediately on OK/Apply.
 
 For settings not exposed in that dialog (like the refresh interval), edit
 `~/.config/wom-tracker/config.json` directly:
@@ -70,7 +70,7 @@ For settings not exposed in that dialog (like the refresh interval), edit
 |---|---|
 | `username` | RSN of the account to track |
 | `period` | `day`, `week`, `month`, `year`, or `all_time`. With `all_time`, the top lists rank by career total (XP/KC) instead of gains over a period |
-| `skill_top_n` / `boss_top_n` | how many skills/bosses to show (the layout is tuned for 3; larger values may get clipped) |
+| `skill_top_n` / `boss_top_n` | how many skills/bosses to track. Only 3 are shown at a time — if set higher, the widget rotates through them 3 at a time (like a display sign), showing a "(page/total)" indicator in the header |
 | `card_width` / `card_height` | widget size in pixels — useful if your panel/monitor clips the widget |
 | `refresh_minutes` | how often the systemd timer fetches new data |
 

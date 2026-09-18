@@ -26,5 +26,8 @@
     <entry name="historyDays" type="Int">
       <default>30</default>
     </entry>
+    <entry name="rotationSeconds" type="Int">
+      <default>10</default>
+    </entry>
   </group>
 </kcfg>

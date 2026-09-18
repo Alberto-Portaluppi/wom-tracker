@@ -27,6 +27,26 @@ PlasmoidItem {
     readonly property var skillsData: root.womData.top_skills ? root.womData.top_skills : []
     readonly property var bossesData: root.womData.top_bosses ? root.womData.top_bosses : []
 
+    // Shows `rowsPerPage` items at a time, rotating through the rest (like a
+    // display sign) so skill_top_n/boss_top_n can be set higher than what
+    // actually fits in the fixed-height card.
+    readonly property int rowsPerPage: 3
+    readonly property int rotationSeconds: Plasmoid.configuration.rotationSeconds
+    property int rotationPage: 0
+    readonly property int skillPageCount: Math.max(1, Math.ceil(root.skillsData.length / root.rowsPerPage))
+    readonly property int bossPageCount: Math.max(1, Math.ceil(root.bossesData.length / root.rowsPerPage))
+    readonly property int skillPageOffset: (root.rotationPage % root.skillPageCount) * root.rowsPerPage
+    readonly property int bossPageOffset: (root.rotationPage % root.bossPageCount) * root.rowsPerPage
+    readonly property var visibleSkills: root.skillsData.slice(root.skillPageOffset, root.skillPageOffset + root.rowsPerPage)
+    readonly property var visibleBosses: root.bossesData.slice(root.bossPageOffset, root.bossPageOffset + root.rowsPerPage)
+
+    Timer {
+        interval: root.rotationSeconds * 1000
+        running: root.skillPageCount > 1 || root.bossPageCount > 1
+        repeat: true
+        onTriggered: root.rotationPage = root.rotationPage + 1
+    }
+
     property var historyPoints: []
     readonly property int historyDays: Plasmoid.configuration.historyDays
     onHistoryPointsChanged: historyCanvas.requestPaint()
@@ -414,13 +434,16 @@ PlasmoidItem {
                 spacing: 4
 
                 Text {
-                    text: root.womData.skills_header ? root.womData.skills_header : "Top 3 Skills"
+                    text: (root.womData.skills_header ? root.womData.skills_header : "Top 3 Skills")
+                        + (root.skillPageCount > 1
+                            ? " (" + (root.rotationPage % root.skillPageCount + 1) + "/" + root.skillPageCount + ")"
+                            : "")
                     font.pixelSize: 11
                     color: Kirigami.Theme.disabledTextColor
                 }
 
                 Repeater {
-                    model: root.skillsData
+                    model: root.visibleSkills
                     delegate: RowLayout {
                         required property var modelData
                         required property int index
@@ -428,7 +451,7 @@ PlasmoidItem {
 
                         Text {
                             Layout.fillWidth: true
-                            text: (index + 1) + ". " + modelData.name
+                            text: (root.skillPageOffset + index + 1) + ". " + modelData.name
                             font.pixelSize: 13
                             color: Kirigami.Theme.textColor
                             elide: Text.ElideRight
@@ -455,13 +478,16 @@ PlasmoidItem {
                 spacing: 4
 
                 Text {
-                    text: root.womData.bosses_header ? root.womData.bosses_header : "Top 3 Bosses"
+                    text: (root.womData.bosses_header ? root.womData.bosses_header : "Top 3 Bosses")
+                        + (root.bossPageCount > 1
+                            ? " (" + (root.rotationPage % root.bossPageCount + 1) + "/" + root.bossPageCount + ")"
+                            : "")
                     font.pixelSize: 11
                     color: Kirigami.Theme.disabledTextColor
                 }
 
                 Repeater {
-                    model: root.bossesData
+                    model: root.visibleBosses
                     delegate: RowLayout {
                         required property var modelData
                         required property int index
@@ -469,7 +495,7 @@ PlasmoidItem {
 
                         Text {
                             Layout.fillWidth: true
-                            text: (index + 1) + ". " + modelData.name
+                            text: (root.bossPageOffset + index + 1) + ". " + modelData.name
                             font.pixelSize: 13
                             color: Kirigami.Theme.textColor
                             elide: Text.ElideRight

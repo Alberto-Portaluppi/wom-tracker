@@ -16,6 +16,7 @@ KCM.SimpleKCM {
     property alias cfg_cardWidth: cardWidthSpin.value
     property alias cfg_cardHeight: cardHeightSpin.value
     property alias cfg_historyDays: historyDaysSpin.value
+    property alias cfg_rotationSeconds: rotationSecondsSpin.value
 
     readonly property var periodModel: [
         { text: "Day", value: "day" },
@@ -52,14 +53,14 @@ KCM.SimpleKCM {
             id: skillTopNSpin
             Kirigami.FormData.label: "Top N skills:"
             from: 1
-            to: 5
+            to: 12
         }
 
         QQC2.SpinBox {
             id: bossTopNSpin
             Kirigami.FormData.label: "Top N bosses:"
             from: 1
-            to: 5
+            to: 12
         }
 
         QQC2.SpinBox {
@@ -83,6 +84,14 @@ KCM.SimpleKCM {
             Kirigami.FormData.label: "History graph range (days):"
             from: 7
             to: 365
+            stepSize: 1
+        }
+
+        QQC2.SpinBox {
+            id: rotationSecondsSpin
+            Kirigami.FormData.label: "Rotate skills/bosses every (seconds):"
+            from: 3
+            to: 60
             stepSize: 1
         }
     }
