@@ -1,0 +1,9 @@
+{
+  "username": "YourRSN",
+  "period": "week",
+  "skill_top_n": 3,
+  "boss_top_n": 3,
+  "card_width": 978,
+  "card_height": 92,
+  "refresh_minutes": 30
+}

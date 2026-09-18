@@ -1,0 +1,4 @@
+__pycache__/
+*.pyc
+wom_tracker/data.json
+wom_tracker/history.db

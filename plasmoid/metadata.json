@@ -1,0 +1,22 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "Awberto"
+            }
+        ],
+        "Category": "Online Services",
+        "Description": "Acompanha XP e kill count de bosses via Wise Old Man",
+        "EnabledByDefault": true,
+        "FormFactors": [
+            "desktop"
+        ],
+        "Icon": "games-highscores",
+        "Id": "org.awberto.womtracker",
+        "License": "MIT",
+        "Name": "Wise Old Man Tracker",
+        "Version": "1.0"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}

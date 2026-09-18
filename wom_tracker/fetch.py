@@ -1,0 +1,201 @@
+#!/usr/bin/env python3
+"""Fetches XP/boss KC data from the Wise Old Man API and writes a cache
+file for the KDE Plasma widget, plus appends a row to a local history DB."""
+
+import json
+import os
+import sqlite3
+import sys
+import urllib.error
+import urllib.request
+from datetime import datetime, timezone
+from pathlib import Path
+
+API_BASE = "https://api.wiseoldman.net/v2"
+USER_AGENT = "wom-tracker/1.0 (personal desktop widget)"
+
+CONFIG_PATH = Path(os.environ.get("WOM_TRACKER_CONFIG", Path.home() / ".config/wom-tracker/config.json"))
+CACHE_PATH = Path(os.environ.get("WOM_TRACKER_CACHE", Path.home() / ".cache/wom-tracker/data.json"))
+DB_PATH = Path(os.environ.get("WOM_TRACKER_DB", Path.home() / ".local/share/wom-tracker/history.db"))
+
+VALID_PERIODS = ("day", "week", "month", "year", "all_time")
+
+DEFAULT_CONFIG = {
+    "username": "YourRSN",
+    "period": "week",
+    "skill_top_n": 3,
+    "boss_top_n": 3,
+    "card_width": 978,
+    "card_height": 92,
+    "refresh_minutes": 30,
+}
+
+PERIOD_LABELS_PT = {
+    "day": "dia",
+    "week": "semana",
+    "month": "mês",
+    "year": "ano",
+    "all_time": "total",
+}
+
+NAME_OVERRIDES = {
+    "tztok_jad": "TzTok-Jad",
+    "tzkal_zuk": "TzKal-Zuk",
+    "kril_tsutsaroth": "K'ril Tsutsaroth",
+    "phosanis_nightmare": "Phosani's Nightmare",
+    "the_gauntlet": "Gauntlet",
+    "the_corrupted_gauntlet": "Corrupted Gauntlet",
+    "the_hueycoatl": "Hueycoatl",
+    "the_leviathan": "Leviathan",
+    "the_royal_titans": "Royal Titans",
+    "the_whisperer": "Whisperer",
+    "chambers_of_xeric_challenge_mode": "Chambers of Xeric (CM)",
+    "theatre_of_blood_hard_mode": "Theatre of Blood (HM)",
+    "tombs_of_amascut_expert": "Tombs of Amascut (Expert)",
+    "amoxliatl": "Amoxliatl",
+}
+
+
+def pretty_name(metric: str) -> str:
+    if metric in NAME_OVERRIDES:
+        return NAME_OVERRIDES[metric]
+    return metric.replace("_", " ").title()
+
+
+def load_config() -> dict:
+    config = dict(DEFAULT_CONFIG)
+    if CONFIG_PATH.exists():
+        try:
+            config.update(json.loads(CONFIG_PATH.read_text()))
+        except json.JSONDecodeError:
+            pass
+    if config["period"] not in VALID_PERIODS:
+        config["period"] = "week"
+    return config
+
+
+def api_get(path: str) -> dict:
+    req = urllib.request.Request(
+        f"{API_BASE}{path}",
+        headers={"User-Agent": USER_AGENT, "Accept": "application/json"},
+    )
+    with urllib.request.urlopen(req, timeout=15) as resp:
+        return json.load(resp)
+
+
+def api_post(path: str) -> None:
+    req = urllib.request.Request(
+        f"{API_BASE}{path}", headers={"User-Agent": USER_AGENT}, method="POST"
+    )
+    try:
+        urllib.request.urlopen(req, timeout=15)
+    except (urllib.error.HTTPError, urllib.error.URLError):
+        # Rate-limited or offline: fall back to whatever snapshot WOM already has.
+        pass
+
+
+def ensure_db(conn: sqlite3.Connection) -> None:
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS history (
+            ts TEXT PRIMARY KEY,
+            overall_xp INTEGER NOT NULL,
+            overall_level INTEGER NOT NULL
+        )
+        """
+    )
+    conn.commit()
+
+
+def top_skills_total(player: dict, n: int) -> list:
+    skills = player["latestSnapshot"]["data"]["skills"]
+    ranked = [(m, s["experience"]) for m, s in skills.items() if m != "overall"]
+    ranked.sort(key=lambda item: item[1], reverse=True)
+    return [{"metric": m, "name": pretty_name(m), "value": v, "suffix": "xp"} for m, v in ranked[:n]]
+
+
+def top_skills_gained(gains: dict, n: int) -> list:
+    skills = gains["data"]["skills"]
+    ranked = [
+        (m, s["experience"]["gained"])
+        for m, s in skills.items()
+        if m != "overall"
+    ]
+    ranked.sort(key=lambda item: item[1], reverse=True)
+    return [{"metric": m, "name": pretty_name(m), "value": v, "suffix": "xp"} for m, v in ranked[:n]]
+
+
+def top_bosses_total(player: dict, n: int) -> list:
+    bosses = player["latestSnapshot"]["data"]["bosses"]
+    ranked = [(m, b["kills"]) for m, b in bosses.items() if b.get("kills", -1) > 0]
+    ranked.sort(key=lambda item: item[1], reverse=True)
+    return [{"metric": m, "name": pretty_name(m), "value": k, "suffix": "kc"} for m, k in ranked[:n]]
+
+
+def top_bosses_gained(gains: dict, n: int) -> list:
+    bosses = gains["data"]["bosses"]
+    ranked = [(m, b["kills"]["gained"]) for m, b in bosses.items() if b["kills"]["gained"] > 0]
+    ranked.sort(key=lambda item: item[1], reverse=True)
+    return [{"metric": m, "name": pretty_name(m), "value": k, "suffix": "kc"} for m, k in ranked[:n]]
+
+
+def main() -> int:
+    config = load_config()
+    username = config["username"]
+    period = config["period"]
+    period_label = PERIOD_LABELS_PT[period]
+
+    api_post(f"/players/{username}")  # nudge a fresh snapshot; safe to ignore failures
+
+    try:
+        player = api_get(f"/players/{username}")
+        if period == "all_time":
+            top_skills = top_skills_total(player, config["skill_top_n"])
+            top_bosses = top_bosses_total(player, config["boss_top_n"])
+        else:
+            gains = api_get(f"/players/{username}/gained?period={period}")
+            top_skills = top_skills_gained(gains, config["skill_top_n"])
+            top_bosses = top_bosses_gained(gains, config["boss_top_n"])
+    except (urllib.error.URLError, urllib.error.HTTPError) as exc:
+        print(f"wom-tracker: fetch failed: {exc}", file=sys.stderr)
+        return 1
+
+    overall = player["latestSnapshot"]["data"]["skills"]["overall"]
+    now = datetime.now(timezone.utc).isoformat()
+    value_prefix = "" if period == "all_time" else "+"
+    skills_label = "Total XP" if period == "all_time" else f"XP ganho ({period_label})"
+    bosses_label = "Total KC" if period == "all_time" else f"KC ganho ({period_label})"
+
+    result = {
+        "username": player["displayName"],
+        "updated_at": now,
+        "overall": {"experience": overall["experience"], "level": overall["level"]},
+        "period": period,
+        "period_label": period_label,
+        "value_prefix": value_prefix,
+        "skills_header": f"Top 3 {skills_label}",
+        "top_skills": top_skills,
+        "bosses_header": f"Top 3 {bosses_label}",
+        "top_bosses": top_bosses,
+        "card_width": config["card_width"],
+        "card_height": config["card_height"],
+    }
+
+    CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    CACHE_PATH.write_text(json.dumps(result, indent=2))
+
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(DB_PATH)
+    ensure_db(conn)
+    conn.execute(
+        "INSERT OR REPLACE INTO history (ts, overall_xp, overall_level) VALUES (?, ?, ?)",
+        (now, overall["experience"], overall["level"]),
+    )
+    conn.commit()
+    conn.close()
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

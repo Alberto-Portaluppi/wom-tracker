@@ -1,0 +1,6 @@
+[Unit]
+Description=Wise Old Man tracker fetch
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 %h/.local/share/wom-tracker/fetch.py
