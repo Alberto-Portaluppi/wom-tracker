@@ -12,7 +12,8 @@ mkdir -p "$DATA_DIR" "$CONFIG_DIR" "$SYSTEMD_DIR"
 
 cp "$SCRIPT_DIR/wom_tracker/fetch.py" "$DATA_DIR/fetch.py"
 cp "$SCRIPT_DIR/wom_tracker/apply_config.py" "$DATA_DIR/apply_config.py"
-chmod +x "$DATA_DIR/fetch.py" "$DATA_DIR/apply_config.py"
+cp "$SCRIPT_DIR/wom_tracker/history_export.py" "$DATA_DIR/history_export.py"
+chmod +x "$DATA_DIR/fetch.py" "$DATA_DIR/apply_config.py" "$DATA_DIR/history_export.py"
 
 if [ ! -f "$CONFIG_FILE" ]; then
     cp "$SCRIPT_DIR/wom_tracker/config.json" "$CONFIG_FILE"

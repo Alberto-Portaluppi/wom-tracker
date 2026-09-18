@@ -20,15 +20,34 @@ PlasmoidItem {
     readonly property string cachePath: root.homeDir + "/.cache/wom-tracker/data.json"
     readonly property string fetchScriptPath: root.homeDir + "/.local/share/wom-tracker/fetch.py"
     readonly property string applyConfigScriptPath: root.homeDir + "/.local/share/wom-tracker/apply_config.py"
+    readonly property string historyScriptPath: root.homeDir + "/.local/share/wom-tracker/history_export.py"
 
     readonly property bool hasData: Object.keys(root.womData).length > 0
     readonly property var overallData: root.womData.overall ? root.womData.overall : null
     readonly property var skillsData: root.womData.top_skills ? root.womData.top_skills : []
     readonly property var bossesData: root.womData.top_bosses ? root.womData.top_bosses : []
 
+    property var historyPoints: []
+    readonly property int historyDays: 30
+    onHistoryPointsChanged: historyCanvas.requestPaint()
+
     function fmt(n) {
         if (n === undefined || n === null) return "-"
         return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")
+    }
+
+    function historySummaryText() {
+        if (root.historyPoints.length < 2) return ""
+        const first = root.historyPoints[0].xp
+        const last = root.historyPoints[root.historyPoints.length - 1].xp
+        const gained = last - first
+        const sign = gained >= 0 ? "+" : ""
+        return sign + root.fmt(gained) + " xp over the last " + root.historyDays + " days"
+    }
+
+    function openHistoryPopup() {
+        historyDialog.visible = true
+        historySource.connectSource("python3 '" + root.historyScriptPath + "' " + root.historyDays)
     }
 
     function refreshNow() {
@@ -135,6 +154,23 @@ PlasmoidItem {
         }
     }
 
+    Plasma5Support.DataSource {
+        id: historySource
+        engine: "executable"
+        onNewData: function (sourceName, data) {
+            const stdout = data["stdout"] ? data["stdout"].toString() : ""
+            if (stdout.length > 0) {
+                try {
+                    const parsed = JSON.parse(stdout)
+                    root.historyPoints = parsed.points ? parsed.points : []
+                } catch (e) {
+                    console.warn("wom-tracker: invalid history json", e)
+                }
+            }
+            disconnectSource(sourceName)
+        }
+    }
+
     Plasmoid.contextualActions: [
         PlasmaCore.Action {
             text: "Refresh now"
@@ -142,6 +178,122 @@ PlasmoidItem {
             onTriggered: root.refreshNow()
         }
     ]
+
+    PlasmaCore.Dialog {
+        id: historyDialog
+        visualParent: root
+
+        mainItem: ColumnLayout {
+            id: historyForm
+            width: 540
+            height: implicitHeight
+            spacing: 8
+
+            Kirigami.Heading {
+                level: 5
+                text: "XP History"
+                Layout.fillWidth: true
+            }
+
+            Text {
+                Layout.fillWidth: true
+                text: root.historySummaryText()
+                color: Kirigami.Theme.positiveTextColor
+                font.bold: true
+                visible: text.length > 0
+            }
+
+            Text {
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                visible: root.historyPoints.length < 2
+                text: "Not enough data yet — check back after a few more fetch cycles."
+                color: Kirigami.Theme.disabledTextColor
+            }
+
+            Canvas {
+                id: historyCanvas
+                Layout.preferredWidth: 520
+                Layout.preferredHeight: 260
+                visible: root.historyPoints.length >= 2
+
+                onPaint: {
+                    const ctx = getContext("2d")
+                    ctx.reset()
+                    const w = width
+                    const h = height
+                    const points = root.historyPoints
+                    if (points.length < 2) return
+
+                    const margin = 10
+                    let minX, maxX, minY, maxY
+                    for (let i = 0; i < points.length; i++) {
+                        const x = new Date(points[i].ts).getTime()
+                        const y = points[i].xp
+                        if (minX === undefined || x < minX) minX = x
+                        if (maxX === undefined || x > maxX) maxX = x
+                        if (minY === undefined || y < minY) minY = y
+                        if (maxY === undefined || y > maxY) maxY = y
+                    }
+                    if (maxY === minY) { minY -= 1; maxY += 1 }
+                    if (maxX === minX) { maxX += 1 }
+
+                    function px(x) { return margin + (x - minX) / (maxX - minX) * (w - margin * 2) }
+                    function py(y) { return h - margin - (y - minY) / (maxY - minY) * (h - margin * 2) }
+
+                    ctx.strokeStyle = Kirigami.Theme.disabledTextColor
+                    ctx.lineWidth = 1
+                    ctx.beginPath()
+                    ctx.moveTo(margin, h - margin)
+                    ctx.lineTo(w - margin, h - margin)
+                    ctx.stroke()
+
+                    ctx.strokeStyle = Kirigami.Theme.positiveTextColor
+                    ctx.lineWidth = 2
+                    ctx.beginPath()
+                    for (let j = 0; j < points.length; j++) {
+                        const xx = px(new Date(points[j].ts).getTime())
+                        const yy = py(points[j].xp)
+                        if (j === 0) ctx.moveTo(xx, yy)
+                        else ctx.lineTo(xx, yy)
+                    }
+                    ctx.stroke()
+
+                    ctx.lineTo(px(maxX), h - margin)
+                    ctx.lineTo(px(minX), h - margin)
+                    ctx.closePath()
+                    ctx.fillStyle = Qt.rgba(
+                        Kirigami.Theme.positiveTextColor.r,
+                        Kirigami.Theme.positiveTextColor.g,
+                        Kirigami.Theme.positiveTextColor.b,
+                        0.15
+                    )
+                    ctx.fill()
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                visible: root.historyPoints.length >= 2
+
+                Text {
+                    text: root.historyPoints.length > 0
+                        ? Qt.formatDateTime(new Date(root.historyPoints[0].ts), "dd/MM")
+                        : ""
+                    font.pixelSize: 10
+                    color: Kirigami.Theme.disabledTextColor
+                }
+                Item { Layout.fillWidth: true }
+                Text {
+                    text: root.historyPoints.length > 0
+                        ? Qt.formatDateTime(new Date(root.historyPoints[root.historyPoints.length - 1].ts), "dd/MM")
+                        : ""
+                    font.pixelSize: 10
+                    color: Kirigami.Theme.disabledTextColor
+                }
+            }
+        }
+    }
 
     fullRepresentation: Item {
         id: card
@@ -157,6 +309,12 @@ PlasmoidItem {
             border.color: Kirigami.Theme.disabledTextColor
             border.width: 1
             opacity: 0.96
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
+            onClicked: root.openHistoryPopup()
         }
 
         Text {

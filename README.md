@@ -17,6 +17,8 @@ Old School RuneScape account, using the [Wise Old Man](https://docs.wiseoldman.n
   directly or through the widget's own native **Configure...** dialog
   (right-click the widget → Configure Wise Old Man Tracker), backed by a
   standard KCFG schema (`plasmoid/contents/config/main.xml`).
+- Clicking the widget opens a popup with a 30-day total XP graph, built from
+  `history.db` via `wom_tracker/history_export.py`.
 
 ## Install
 
@@ -79,7 +81,7 @@ Left here for anyone who wants to contribute:
 - Manually pin specific skills/bosses instead of "auto top N"
 - Group/clan support (WOM has group endpoints) instead of a single account
 - Customizable colors (currently uses the Plasma theme's colors)
-- A history graph popup on click (`history.db` already collects the data, just needs a UI)
+- A configurable range for the history graph (currently hardcoded to 30 days)
 
 ## Manual refresh
 
