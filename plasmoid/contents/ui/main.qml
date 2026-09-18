@@ -201,7 +201,7 @@ PlasmoidItem {
 
         mainItem: ColumnLayout {
             id: historyForm
-            width: 540
+            width: 600
             height: implicitHeight
             spacing: 8
 
@@ -229,9 +229,24 @@ PlasmoidItem {
 
             Canvas {
                 id: historyCanvas
-                Layout.preferredWidth: 520
-                Layout.preferredHeight: 260
+                Layout.preferredWidth: 580
+                Layout.preferredHeight: 280
                 visible: root.historyPoints.length >= 2
+
+                // "Nice" round step (1/2/5 x 10^n) for the Y-axis gridlines,
+                // so labels read like 462,000,000 instead of arbitrary values.
+                function niceStep(range, targetTicks) {
+                    if (range <= 0) return 1
+                    const rough = range / targetTicks
+                    const magnitude = Math.pow(10, Math.floor(Math.log(rough) / Math.LN10))
+                    const residual = rough / magnitude
+                    let niceResidual
+                    if (residual > 5) niceResidual = 10
+                    else if (residual > 2) niceResidual = 5
+                    else if (residual > 1) niceResidual = 2
+                    else niceResidual = 1
+                    return niceResidual * magnitude
+                }
 
                 onPaint: {
                     const ctx = getContext("2d")
@@ -241,7 +256,6 @@ PlasmoidItem {
                     const points = root.historyPoints
                     if (points.length < 2) return
 
-                    const margin = 10
                     let minX, maxX, minY, maxY
                     for (let i = 0; i < points.length; i++) {
                         const x = new Date(points[i].ts).getTime()
@@ -251,19 +265,46 @@ PlasmoidItem {
                         if (minY === undefined || y < minY) minY = y
                         if (maxY === undefined || y > maxY) maxY = y
                     }
-                    if (maxY === minY) { minY -= 1; maxY += 1 }
-                    if (maxX === minX) { maxX += 1 }
+                    if (maxX === minX) maxX += 1
 
-                    function px(x) { return margin + (x - minX) / (maxX - minX) * (w - margin * 2) }
-                    function py(y) { return h - margin - (y - minY) / (maxY - minY) * (h - margin * 2) }
+                    const yStep = historyCanvas.niceStep(Math.max(maxY - minY, 1), 5)
+                    const niceMinY = Math.floor(minY / yStep) * yStep
+                    const niceMaxY = Math.ceil(maxY / yStep) * yStep
 
-                    ctx.strokeStyle = Kirigami.Theme.disabledTextColor
+                    const leftMargin = 80
+                    const rightMargin = 12
+                    const topMargin = 10
+                    const bottomMargin = 22
+
+                    function px(x) { return leftMargin + (x - minX) / (maxX - minX) * (w - leftMargin - rightMargin) }
+                    function py(y) { return h - bottomMargin - (y - niceMinY) / (niceMaxY - niceMinY) * (h - topMargin - bottomMargin) }
+
+                    // horizontal gridlines + rounded XP labels
+                    ctx.strokeStyle = Qt.rgba(1, 1, 1, 0.08)
                     ctx.lineWidth = 1
-                    ctx.beginPath()
-                    ctx.moveTo(margin, h - margin)
-                    ctx.lineTo(w - margin, h - margin)
-                    ctx.stroke()
+                    ctx.font = "10px sans-serif"
+                    ctx.fillStyle = Kirigami.Theme.disabledTextColor
+                    ctx.textAlign = "right"
+                    ctx.textBaseline = "middle"
+                    for (let gy = niceMinY; gy <= niceMaxY + yStep * 0.001; gy += yStep) {
+                        const yy = py(gy)
+                        ctx.beginPath()
+                        ctx.moveTo(leftMargin, yy)
+                        ctx.lineTo(w - rightMargin, yy)
+                        ctx.stroke()
+                        ctx.fillText(root.fmt(Math.round(gy)), leftMargin - 8, yy)
+                    }
 
+                    // a handful of evenly-spaced date labels along the X axis
+                    const tickCount = 4
+                    ctx.textAlign = "center"
+                    ctx.textBaseline = "top"
+                    for (let i = 0; i <= tickCount; i++) {
+                        const tx = minX + (maxX - minX) * (i / tickCount)
+                        ctx.fillText(Qt.formatDateTime(new Date(tx), "dd/MM"), px(tx), h - bottomMargin + 5)
+                    }
+
+                    // the XP line, drawn over the grid
                     ctx.strokeStyle = Kirigami.Theme.positiveTextColor
                     ctx.lineWidth = 2
                     ctx.beginPath()
@@ -275,37 +316,16 @@ PlasmoidItem {
                     }
                     ctx.stroke()
 
-                    ctx.lineTo(px(maxX), h - margin)
-                    ctx.lineTo(px(minX), h - margin)
+                    ctx.lineTo(px(maxX), h - bottomMargin)
+                    ctx.lineTo(px(minX), h - bottomMargin)
                     ctx.closePath()
                     ctx.fillStyle = Qt.rgba(
                         Kirigami.Theme.positiveTextColor.r,
                         Kirigami.Theme.positiveTextColor.g,
                         Kirigami.Theme.positiveTextColor.b,
-                        0.15
+                        0.12
                     )
                     ctx.fill()
-                }
-            }
-
-            RowLayout {
-                Layout.fillWidth: true
-                visible: root.historyPoints.length >= 2
-
-                Text {
-                    text: root.historyPoints.length > 0
-                        ? Qt.formatDateTime(new Date(root.historyPoints[0].ts), "dd/MM")
-                        : ""
-                    font.pixelSize: 10
-                    color: Kirigami.Theme.disabledTextColor
-                }
-                Item { Layout.fillWidth: true }
-                Text {
-                    text: root.historyPoints.length > 0
-                        ? Qt.formatDateTime(new Date(root.historyPoints[root.historyPoints.length - 1].ts), "dd/MM")
-                        : ""
-                    font.pixelSize: 10
-                    color: Kirigami.Theme.disabledTextColor
                 }
             }
         }
