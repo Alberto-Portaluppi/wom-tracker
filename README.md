@@ -85,6 +85,15 @@ Left here for anyone who wants to contribute:
 - Group/clan support (WOM has group endpoints) instead of a single account
 - Customizable colors (currently uses the Plasma theme's colors)
 
+## Known limitation: data lags while you're logged in
+
+The official OSRS hiscores (which WOM reads from) don't reliably reflect
+your live progress while your character is still logged in — they tend to
+"settle" once you log out. This isn't something this widget (or WOM) can
+fix: no amount of polling helps if the upstream data hasn't updated yet.
+If numbers look stuck during a long session, that's expected; they'll
+catch up after you log out.
+
 ## Manual refresh
 
 ```bash
