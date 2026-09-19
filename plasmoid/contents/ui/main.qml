@@ -129,6 +129,18 @@ PlasmoidItem {
         return (offset + index + 1) + ". " + modelData.name
     }
 
+    function escapeHtml(text) {
+        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    }
+
+    // Same "date - name" shape as rowLabel, but with just the name colored
+    // and bold (date stays plain) — used when colorName is set, since there's
+    // no value column to carry the color instead.
+    function rowLabelRich(modelData, color) {
+        return modelData.date_label + " - <b><font color=\"" + color + "\">"
+            + root.escapeHtml(modelData.name) + "</font></b>"
+    }
+
     // Describes the actual span covered by the returned points, not the
     // requested window — WOM may not have snapshots going back the full
     // requested range (e.g. a freshly-tracked account), so this stays honest.
@@ -528,9 +540,12 @@ PlasmoidItem {
 
                         Text {
                             Layout.fillWidth: true
-                            text: root.rowLabel(modelData, index, root.leftPageOffset)
+                            textFormat: root.leftContent.colorName ? Text.StyledText : Text.PlainText
+                            text: root.leftContent.colorName
+                                ? root.rowLabelRich(modelData, root.leftContent.color)
+                                : root.rowLabel(modelData, index, root.leftPageOffset)
                             font.pixelSize: 13
-                            color: root.leftContent.colorName ? root.leftContent.color : Kirigami.Theme.textColor
+                            color: Kirigami.Theme.textColor
                             elide: Text.ElideRight
                         }
                         Text {
@@ -576,9 +591,12 @@ PlasmoidItem {
 
                         Text {
                             Layout.fillWidth: true
-                            text: root.rowLabel(modelData, index, 0)
+                            textFormat: root.rightContent.colorName ? Text.StyledText : Text.PlainText
+                            text: root.rightContent.colorName
+                                ? root.rowLabelRich(modelData, root.rightContent.color)
+                                : root.rowLabel(modelData, index, 0)
                             font.pixelSize: 13
-                            color: root.rightContent.colorName ? root.rightContent.color : Kirigami.Theme.textColor
+                            color: Kirigami.Theme.textColor
                             elide: Text.ElideRight
                         }
                         Text {
