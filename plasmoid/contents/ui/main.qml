@@ -577,12 +577,17 @@ PlasmoidItem {
                 Item { Layout.fillHeight: true }
             }
 
-            Kirigami.Separator { Layout.fillHeight: true }
+            Kirigami.Separator {
+                Layout.fillHeight: true
+                visible: !root.leftContent.isNone || !root.rightContent.isNone
+            }
 
             // -- Left column of the current rotating panel --
             ColumnLayout {
                 Layout.preferredWidth: 350
+                Layout.fillWidth: root.rightContent.isNone
                 Layout.fillHeight: true
+                visible: !root.leftContent.isNone
                 spacing: 4
 
                 Text {
@@ -628,12 +633,17 @@ PlasmoidItem {
                 Item { Layout.fillHeight: true }
             }
 
-            Kirigami.Separator { Layout.fillHeight: true }
+            Kirigami.Separator {
+                Layout.fillHeight: true
+                visible: !root.leftContent.isNone && !root.rightContent.isNone
+            }
 
             // -- Right column of the current rotating panel --
             ColumnLayout {
                 Layout.preferredWidth: 290
+                Layout.fillWidth: root.leftContent.isNone
                 Layout.fillHeight: true
+                visible: !root.rightContent.isNone
                 spacing: 4
 
                 Text {
