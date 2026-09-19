@@ -173,6 +173,7 @@ def format_valuable_drops(items: list) -> list:
             "value": item["data"]["value"],
             "suffix": "gp",
             "prefix": "+",
+            "date_label": parse_rp_timestamp(item["createdAt"]).strftime("%d/%m"),
         }
         for item in items
     ]
@@ -182,9 +183,10 @@ def format_new_items(items: list) -> list:
     return [
         {
             "name": item["enriched"].get("itemName", "Unknown item"),
-            "value": parse_rp_timestamp(item["createdAt"]).strftime("%d/%m"),
+            "value": "",
             "suffix": "",
             "prefix": "",
+            "date_label": parse_rp_timestamp(item["createdAt"]).strftime("%d/%m"),
         }
         for item in items
     ]
@@ -197,6 +199,7 @@ def format_combat_achievements(items: list) -> list:
             "value": item["enriched"].get("tierName", ""),
             "suffix": "",
             "prefix": "",
+            "date_label": parse_rp_timestamp(item["createdAt"]).strftime("%d/%m"),
         }
         for item in items
     ]
@@ -209,6 +212,7 @@ def format_xp_milestones(items: list) -> list:
             "value": item["data"]["xp"],
             "suffix": "xp",
             "prefix": "+",
+            "date_label": parse_rp_timestamp(item["createdAt"]).strftime("%d/%m"),
         }
         for item in items
     ]

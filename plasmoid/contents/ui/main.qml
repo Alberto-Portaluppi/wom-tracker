@@ -87,6 +87,16 @@ PlasmoidItem {
         return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")
     }
 
+    // Activity items (drops, CAs, new items, milestones) carry a date_label
+    // and read better with "18/09 - Name" than a rank number, since they're
+    // a timeline, not a top-N ranking like skills/bosses are.
+    function rowLabel(modelData, index, offset) {
+        if (modelData.date_label !== undefined) {
+            return modelData.date_label + " - " + modelData.name
+        }
+        return (offset + index + 1) + ". " + modelData.name
+    }
+
     // Describes the actual span covered by the returned points, not the
     // requested window — WOM may not have snapshots going back the full
     // requested range (e.g. a freshly-tracked account), so this stays honest.
@@ -486,7 +496,7 @@ PlasmoidItem {
 
                         Text {
                             Layout.fillWidth: true
-                            text: (root.leftPageOffset + index + 1) + ". " + modelData.name
+                            text: root.rowLabel(modelData, index, root.leftPageOffset)
                             font.pixelSize: 13
                             color: Kirigami.Theme.textColor
                             elide: Text.ElideRight
@@ -533,7 +543,7 @@ PlasmoidItem {
 
                         Text {
                             Layout.fillWidth: true
-                            text: (index + 1) + ". " + modelData.name
+                            text: root.rowLabel(modelData, index, 0)
                             font.pixelSize: 13
                             color: Kirigami.Theme.textColor
                             elide: Text.ElideRight
