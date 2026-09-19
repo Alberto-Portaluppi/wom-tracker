@@ -30,19 +30,24 @@ PlasmoidItem {
     readonly property var newItems: root.womData.new_items ? root.womData.new_items : []
     readonly property var combatAchievements: root.womData.combat_achievements ? root.womData.combat_achievements : []
     readonly property var xpMilestones: root.womData.xp_milestones ? root.womData.xp_milestones : []
+    readonly property var levelUps: root.womData.level_ups ? root.womData.level_ups : []
+    readonly property var questsCompleted: root.womData.quests_completed ? root.womData.quests_completed : []
+    readonly property var diaryTiers: root.womData.diary_tiers ? root.womData.diary_tiers : []
+    readonly property var caProgress: root.womData.ca_progress ? root.womData.ca_progress : []
 
-    // The two side columns cycle through 3 user-configurable slides like a
-    // display sign. Each slide independently picks what its left/right
-    // column shows (skills, bosses, valuable drops, new collection log
-    // items, combat achievements, XP milestones, or blank) via the native
-    // config dialog. Skills/bosses sub-page on the same global tick using
+    // The two side columns cycle through 1-5 user-configurable panels (each
+    // with independent left/right content) like a display sign, so someone
+    // who doesn't care about e.g. quests or diaries can just run 1 panel of
+    // (skills, bosses) forever, while someone who wants everything can add
+    // panels up to 5. Skills/bosses sub-page on the same global tick using
     // their own item count, so if skill_top_n/boss_top_n is above
-    // rowsPerPage, whichever slide shows them cycles through all of their
+    // rowsPerPage, whichever panel shows them cycles through all of their
     // pages over multiple full rotations.
     readonly property int rowsPerPage: 3
     readonly property int rotationSeconds: Plasmoid.configuration.rotationSeconds
     property int rotationPage: 0
-    readonly property int slideIndex: root.rotationPage % 3
+    readonly property int panelCount: Math.max(1, Math.min(5, Plasmoid.configuration.panelCount))
+    readonly property int slideIndex: root.rotationPage % root.panelCount
 
     readonly property int skillPageCount: Math.max(1, Math.ceil(root.skillsData.length / root.rowsPerPage))
     readonly property int bossPageCount: Math.max(1, Math.ceil(root.bossesData.length / root.rowsPerPage))
@@ -86,18 +91,31 @@ PlasmoidItem {
         }
         case "combat_achievements":
             return { items: root.combatAchievements, header: "Combat Achievements", offset: 0, color: Kirigami.Theme.neutralTextColor, colorName: false, isNone: false }
+        case "ca_progress":
+            return { items: root.caProgress, header: "Combat Achievement Progress", offset: 0, color: Kirigami.Theme.neutralTextColor, colorName: false, isNone: false }
         case "xp_milestones":
             return { items: root.xpMilestones, header: "XP Milestones", offset: 0, color: Kirigami.Theme.positiveTextColor, colorName: false, isNone: false }
+        case "level_up":
+            return { items: root.levelUps, header: "Level Ups", offset: 0, color: Kirigami.Theme.positiveTextColor, colorName: false, isNone: false }
+        case "quest_completed":
+            // No natural "value" column (it's just "completed"), so the quest
+            // name itself is the colored part, same treatment as new_items.
+            return { items: root.questsCompleted, header: "Quests Completed", offset: 0, color: Kirigami.Theme.positiveTextColor, colorName: true, isNone: false }
+        case "diary_tier_completed":
+            return { items: root.diaryTiers, header: "Achievement Diary Tiers", offset: 0, color: Kirigami.Theme.neutralTextColor, colorName: false, isNone: false }
         default:
             return { items: [], header: "", offset: 0, color: Kirigami.Theme.disabledTextColor, colorName: false, isNone: true }
         }
     }
 
-    readonly property var slideKeys: [
-        [Plasmoid.configuration.slide1Left, Plasmoid.configuration.slide1Right],
-        [Plasmoid.configuration.slide2Left, Plasmoid.configuration.slide2Right],
-        [Plasmoid.configuration.slide3Left, Plasmoid.configuration.slide3Right]
+    readonly property var allPanelKeys: [
+        [Plasmoid.configuration.panel1Left, Plasmoid.configuration.panel1Right],
+        [Plasmoid.configuration.panel2Left, Plasmoid.configuration.panel2Right],
+        [Plasmoid.configuration.panel3Left, Plasmoid.configuration.panel3Right],
+        [Plasmoid.configuration.panel4Left, Plasmoid.configuration.panel4Right],
+        [Plasmoid.configuration.panel5Left, Plasmoid.configuration.panel5Right]
     ]
+    readonly property var slideKeys: root.allPanelKeys.slice(0, root.panelCount)
     readonly property var leftContent: root.contentFor(root.slideKeys[root.slideIndex][0])
     readonly property var rightContent: root.contentFor(root.slideKeys[root.slideIndex][1])
     readonly property var leftItems: root.leftContent.items
@@ -108,7 +126,7 @@ PlasmoidItem {
 
     Timer {
         interval: root.rotationSeconds * 1000
-        running: true
+        running: root.panelCount > 1
         repeat: true
         onTriggered: root.rotationPage = root.rotationPage + 1
     }
@@ -533,7 +551,7 @@ PlasmoidItem {
 
             Kirigami.Separator { Layout.fillHeight: true }
 
-            // -- Left slide: skills / valuable drops / bosses (rotating) --
+            // -- Left column of the current rotating panel --
             ColumnLayout {
                 Layout.preferredWidth: 350
                 Layout.fillHeight: true
@@ -584,7 +602,7 @@ PlasmoidItem {
 
             Kirigami.Separator { Layout.fillHeight: true }
 
-            // -- Right slide: XP milestones / new items / combat achievements (rotating) --
+            // -- Right column of the current rotating panel --
             ColumnLayout {
                 Layout.preferredWidth: 290
                 Layout.fillHeight: true

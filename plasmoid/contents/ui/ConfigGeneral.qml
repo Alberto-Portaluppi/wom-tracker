@@ -17,12 +17,17 @@ KCM.SimpleKCM {
     property alias cfg_cardHeight: cardHeightSpin.value
     property alias cfg_historyDays: historyDaysSpin.value
     property alias cfg_rotationSeconds: rotationSecondsSpin.value
-    property string cfg_slide1Left: Plasmoid.configuration.slide1Left
-    property string cfg_slide1Right: Plasmoid.configuration.slide1Right
-    property string cfg_slide2Left: Plasmoid.configuration.slide2Left
-    property string cfg_slide2Right: Plasmoid.configuration.slide2Right
-    property string cfg_slide3Left: Plasmoid.configuration.slide3Left
-    property string cfg_slide3Right: Plasmoid.configuration.slide3Right
+    property alias cfg_panelCount: panelCountSpin.value
+    property string cfg_panel1Left: Plasmoid.configuration.panel1Left
+    property string cfg_panel1Right: Plasmoid.configuration.panel1Right
+    property string cfg_panel2Left: Plasmoid.configuration.panel2Left
+    property string cfg_panel2Right: Plasmoid.configuration.panel2Right
+    property string cfg_panel3Left: Plasmoid.configuration.panel3Left
+    property string cfg_panel3Right: Plasmoid.configuration.panel3Right
+    property string cfg_panel4Left: Plasmoid.configuration.panel4Left
+    property string cfg_panel4Right: Plasmoid.configuration.panel4Right
+    property string cfg_panel5Left: Plasmoid.configuration.panel5Left
+    property string cfg_panel5Right: Plasmoid.configuration.panel5Right
     property alias cfg_minDropValue: minDropValueSpin.value
     property alias cfg_dropsSortByValue: dropsSortByValueCheck.checked
     property alias cfg_showRank: showRankCheck.checked
@@ -40,8 +45,12 @@ KCM.SimpleKCM {
         { text: "Top bosses", value: "bosses" },
         { text: "Valuable drops", value: "valuable_drops" },
         { text: "New collection log items", value: "new_items" },
-        { text: "Combat achievements", value: "combat_achievements" },
+        { text: "Combat achievements completed", value: "combat_achievements" },
+        { text: "Combat achievement progress", value: "ca_progress" },
         { text: "XP milestones", value: "xp_milestones" },
+        { text: "Level ups", value: "level_up" },
+        { text: "Quests completed", value: "quest_completed" },
+        { text: "Achievement diary tiers", value: "diary_tier_completed" },
         { text: "None (blank)", value: "none" }
     ]
 
@@ -59,12 +68,16 @@ KCM.SimpleKCM {
                 break
             }
         }
-        slide1LeftCombo.currentIndex = page.indexForContent(page.cfg_slide1Left)
-        slide1RightCombo.currentIndex = page.indexForContent(page.cfg_slide1Right)
-        slide2LeftCombo.currentIndex = page.indexForContent(page.cfg_slide2Left)
-        slide2RightCombo.currentIndex = page.indexForContent(page.cfg_slide2Right)
-        slide3LeftCombo.currentIndex = page.indexForContent(page.cfg_slide3Left)
-        slide3RightCombo.currentIndex = page.indexForContent(page.cfg_slide3Right)
+        panel1LeftCombo.currentIndex = page.indexForContent(page.cfg_panel1Left)
+        panel1RightCombo.currentIndex = page.indexForContent(page.cfg_panel1Right)
+        panel2LeftCombo.currentIndex = page.indexForContent(page.cfg_panel2Left)
+        panel2RightCombo.currentIndex = page.indexForContent(page.cfg_panel2Right)
+        panel3LeftCombo.currentIndex = page.indexForContent(page.cfg_panel3Left)
+        panel3RightCombo.currentIndex = page.indexForContent(page.cfg_panel3Right)
+        panel4LeftCombo.currentIndex = page.indexForContent(page.cfg_panel4Left)
+        panel4RightCombo.currentIndex = page.indexForContent(page.cfg_panel4Right)
+        panel5LeftCombo.currentIndex = page.indexForContent(page.cfg_panel5Left)
+        panel5RightCombo.currentIndex = page.indexForContent(page.cfg_panel5Right)
     }
 
     Kirigami.FormLayout {
@@ -121,58 +134,101 @@ KCM.SimpleKCM {
 
         QQC2.SpinBox {
             id: rotationSecondsSpin
-            Kirigami.FormData.label: "Rotate slides every (seconds):"
+            Kirigami.FormData.label: "Rotate panels every (seconds):"
             from: 3
             to: 60
             stepSize: 1
         }
 
         Kirigami.Separator {
-            Kirigami.FormData.label: "Slide content"
+            Kirigami.FormData.label: "Panels"
             Kirigami.FormData.isSection: true
         }
 
+        QQC2.SpinBox {
+            id: panelCountSpin
+            Kirigami.FormData.label: "How many panels to rotate through:"
+            from: 1
+            to: 5
+        }
+
         QQC2.ComboBox {
-            id: slide1LeftCombo
-            Kirigami.FormData.label: "Slide 1 — left:"
+            id: panel1LeftCombo
+            Kirigami.FormData.label: "Panel 1 — left:"
             textRole: "text"
             model: page.contentModel
-            onActivated: page.cfg_slide1Left = page.contentModel[currentIndex].value
+            onActivated: page.cfg_panel1Left = page.contentModel[currentIndex].value
         }
         QQC2.ComboBox {
-            id: slide1RightCombo
-            Kirigami.FormData.label: "Slide 1 — right:"
+            id: panel1RightCombo
+            Kirigami.FormData.label: "Panel 1 — right:"
             textRole: "text"
             model: page.contentModel
-            onActivated: page.cfg_slide1Right = page.contentModel[currentIndex].value
+            onActivated: page.cfg_panel1Right = page.contentModel[currentIndex].value
         }
         QQC2.ComboBox {
-            id: slide2LeftCombo
-            Kirigami.FormData.label: "Slide 2 — left:"
+            id: panel2LeftCombo
+            Kirigami.FormData.label: "Panel 2 — left:"
             textRole: "text"
             model: page.contentModel
-            onActivated: page.cfg_slide2Left = page.contentModel[currentIndex].value
+            visible: page.cfg_panelCount >= 2
+            onActivated: page.cfg_panel2Left = page.contentModel[currentIndex].value
         }
         QQC2.ComboBox {
-            id: slide2RightCombo
-            Kirigami.FormData.label: "Slide 2 — right:"
+            id: panel2RightCombo
+            Kirigami.FormData.label: "Panel 2 — right:"
             textRole: "text"
             model: page.contentModel
-            onActivated: page.cfg_slide2Right = page.contentModel[currentIndex].value
+            visible: page.cfg_panelCount >= 2
+            onActivated: page.cfg_panel2Right = page.contentModel[currentIndex].value
         }
         QQC2.ComboBox {
-            id: slide3LeftCombo
-            Kirigami.FormData.label: "Slide 3 — left:"
+            id: panel3LeftCombo
+            Kirigami.FormData.label: "Panel 3 — left:"
             textRole: "text"
             model: page.contentModel
-            onActivated: page.cfg_slide3Left = page.contentModel[currentIndex].value
+            visible: page.cfg_panelCount >= 3
+            onActivated: page.cfg_panel3Left = page.contentModel[currentIndex].value
         }
         QQC2.ComboBox {
-            id: slide3RightCombo
-            Kirigami.FormData.label: "Slide 3 — right:"
+            id: panel3RightCombo
+            Kirigami.FormData.label: "Panel 3 — right:"
             textRole: "text"
             model: page.contentModel
-            onActivated: page.cfg_slide3Right = page.contentModel[currentIndex].value
+            visible: page.cfg_panelCount >= 3
+            onActivated: page.cfg_panel3Right = page.contentModel[currentIndex].value
+        }
+        QQC2.ComboBox {
+            id: panel4LeftCombo
+            Kirigami.FormData.label: "Panel 4 — left:"
+            textRole: "text"
+            model: page.contentModel
+            visible: page.cfg_panelCount >= 4
+            onActivated: page.cfg_panel4Left = page.contentModel[currentIndex].value
+        }
+        QQC2.ComboBox {
+            id: panel4RightCombo
+            Kirigami.FormData.label: "Panel 4 — right:"
+            textRole: "text"
+            model: page.contentModel
+            visible: page.cfg_panelCount >= 4
+            onActivated: page.cfg_panel4Right = page.contentModel[currentIndex].value
+        }
+        QQC2.ComboBox {
+            id: panel5LeftCombo
+            Kirigami.FormData.label: "Panel 5 — left:"
+            textRole: "text"
+            model: page.contentModel
+            visible: page.cfg_panelCount >= 5
+            onActivated: page.cfg_panel5Left = page.contentModel[currentIndex].value
+        }
+        QQC2.ComboBox {
+            id: panel5RightCombo
+            Kirigami.FormData.label: "Panel 5 — right:"
+            textRole: "text"
+            model: page.contentModel
+            visible: page.cfg_panelCount >= 5
+            onActivated: page.cfg_panel5Right = page.contentModel[currentIndex].value
         }
 
         Kirigami.Separator {

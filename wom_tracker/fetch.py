@@ -222,6 +222,58 @@ def format_xp_milestones(items: list) -> list:
     ]
 
 
+def format_level_ups(items: list) -> list:
+    return [
+        {
+            "name": item["data"]["name"],
+            "value": item["data"]["level"],
+            "suffix": "",
+            "prefix": "Lvl ",
+            "date_label": parse_rp_timestamp(item["createdAt"]).strftime("%d/%m"),
+        }
+        for item in items
+    ]
+
+
+def format_quests_completed(items: list) -> list:
+    return [
+        {
+            "name": item["enriched"].get("questName", "Unknown quest"),
+            "value": "",
+            "suffix": "",
+            "prefix": "",
+            "date_label": parse_rp_timestamp(item["createdAt"]).strftime("%d/%m"),
+        }
+        for item in items
+    ]
+
+
+def format_diary_tiers(items: list) -> list:
+    return [
+        {
+            "name": item["enriched"].get("areaName", "Unknown area"),
+            "value": item["enriched"].get("tierName", ""),
+            "suffix": "",
+            "prefix": "",
+            "date_label": parse_rp_timestamp(item["createdAt"]).strftime("%d/%m"),
+        }
+        for item in items
+    ]
+
+
+def format_ca_progress(tiers: list) -> list:
+    incomplete = [t for t in tiers if t["completed"] < t["total"]]
+    return [
+        {
+            "name": t["name"],
+            "value": f"{t['completed']}/{t['total']}",
+            "suffix": "",
+            "prefix": "",
+        }
+        for t in incomplete[:3]
+    ]
+
+
 def fetch_valuable_drops(username: str, min_value: int, sort_by_value: bool, n: int = 3) -> list:
     items = fetch_activities(username, "valuable_drop", limit=DROPS_POOL_SIZE)
     items = [item for item in items if item["data"]["value"] >= min_value]
@@ -230,12 +282,12 @@ def fetch_valuable_drops(username: str, min_value: int, sort_by_value: bool, n: 
     return format_valuable_drops(items[:n])
 
 
-def fetch_collection_log_summary(username: str):
-    data = runeprofile_get(f"/accounts/{username}")
-    return data.get("collectionLog") if data else None
+def fetch_account_summary(username: str):
+    return runeprofile_get(f"/accounts/{username}")
 
 
 def fetch_runeprofile_extras(username: str, config: dict) -> dict:
+    summary = fetch_account_summary(username)
     return {
         "valuable_drops": fetch_valuable_drops(
             username, config["min_drop_value"], config["drops_sort_by_value"]
@@ -245,7 +297,11 @@ def fetch_runeprofile_extras(username: str, config: dict) -> dict:
             fetch_activities(username, "combat_achievement_task_completed")
         ),
         "xp_milestones": format_xp_milestones(fetch_activities(username, "xp_milestone")),
-        "collection_log": fetch_collection_log_summary(username),
+        "level_ups": format_level_ups(fetch_activities(username, "level_up")),
+        "quests_completed": format_quests_completed(fetch_activities(username, "quest_completed")),
+        "diary_tiers": format_diary_tiers(fetch_activities(username, "achievement_diary_tier_completed")),
+        "ca_progress": format_ca_progress(summary.get("combatAchievements", [])) if summary else [],
+        "collection_log": summary.get("collectionLog") if summary else None,
     }
 
 
@@ -296,6 +352,10 @@ def main() -> int:
         "new_items": extras["new_items"],
         "combat_achievements": extras["combat_achievements"],
         "xp_milestones": extras["xp_milestones"],
+        "level_ups": extras["level_ups"],
+        "quests_completed": extras["quests_completed"],
+        "diary_tiers": extras["diary_tiers"],
+        "ca_progress": extras["ca_progress"],
         "collection_log": extras["collection_log"],
         "card_width": config["card_width"],
         "card_height": config["card_height"],
