@@ -183,7 +183,7 @@ def format_new_items(items: list) -> list:
     return [
         {
             "name": item["enriched"].get("itemName", "Unknown item"),
-            "value": "NEW",
+            "value": "",
             "suffix": "",
             "prefix": "",
             "date_label": parse_rp_timestamp(item["createdAt"]).strftime("%d/%m"),

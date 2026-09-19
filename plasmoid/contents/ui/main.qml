@@ -59,6 +59,7 @@ PlasmoidItem {
                 header: (root.womData.skills_header ? root.womData.skills_header : "Top Skills") + pageSuffix,
                 offset: offset,
                 color: Kirigami.Theme.positiveTextColor,
+                colorName: false,
                 isNone: false
             }
         }
@@ -70,19 +71,22 @@ PlasmoidItem {
                 header: (root.womData.bosses_header ? root.womData.bosses_header : "Top Bosses") + pageSuffix,
                 offset: offset,
                 color: Kirigami.Theme.neutralTextColor,
+                colorName: false,
                 isNone: false
             }
         }
         case "valuable_drops":
-            return { items: root.valuableDrops, header: "Valuable Drops", offset: 0, color: Kirigami.Theme.positiveTextColor, isNone: false }
+            return { items: root.valuableDrops, header: "Valuable Drops", offset: 0, color: Kirigami.Theme.positiveTextColor, colorName: false, isNone: false }
         case "new_items":
-            return { items: root.newItems, header: "New Collection Log Items", offset: 0, color: Kirigami.Theme.neutralTextColor, isNone: false }
+            // No natural "value" column for these (it's just "you got it"), so
+            // the item name itself is the colored part instead of a value.
+            return { items: root.newItems, header: "New Collection Log Items", offset: 0, color: Kirigami.Theme.neutralTextColor, colorName: true, isNone: false }
         case "combat_achievements":
-            return { items: root.combatAchievements, header: "Combat Achievements", offset: 0, color: Kirigami.Theme.neutralTextColor, isNone: false }
+            return { items: root.combatAchievements, header: "Combat Achievements", offset: 0, color: Kirigami.Theme.neutralTextColor, colorName: false, isNone: false }
         case "xp_milestones":
-            return { items: root.xpMilestones, header: "XP Milestones", offset: 0, color: Kirigami.Theme.positiveTextColor, isNone: false }
+            return { items: root.xpMilestones, header: "XP Milestones", offset: 0, color: Kirigami.Theme.positiveTextColor, colorName: false, isNone: false }
         default:
-            return { items: [], header: "", offset: 0, color: Kirigami.Theme.disabledTextColor, isNone: true }
+            return { items: [], header: "", offset: 0, color: Kirigami.Theme.disabledTextColor, colorName: false, isNone: true }
         }
     }
 
@@ -526,7 +530,7 @@ PlasmoidItem {
                             Layout.fillWidth: true
                             text: root.rowLabel(modelData, index, root.leftPageOffset)
                             font.pixelSize: 13
-                            color: Kirigami.Theme.textColor
+                            color: root.leftContent.colorName ? root.leftContent.color : Kirigami.Theme.textColor
                             elide: Text.ElideRight
                         }
                         Text {
@@ -534,6 +538,7 @@ PlasmoidItem {
                             font.pixelSize: 13
                             font.bold: true
                             color: root.leftContent.color
+                            visible: !root.leftContent.colorName
                         }
                     }
                 }
@@ -573,7 +578,7 @@ PlasmoidItem {
                             Layout.fillWidth: true
                             text: root.rowLabel(modelData, index, 0)
                             font.pixelSize: 13
-                            color: Kirigami.Theme.textColor
+                            color: root.rightContent.colorName ? root.rightContent.color : Kirigami.Theme.textColor
                             elide: Text.ElideRight
                         }
                         Text {
@@ -581,6 +586,7 @@ PlasmoidItem {
                             font.pixelSize: 13
                             font.bold: true
                             color: root.rightContent.color
+                            visible: !root.rightContent.colorName
                         }
                     }
                 }
