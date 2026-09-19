@@ -52,61 +52,68 @@ PlasmoidItem {
     // Every content type can now have more items than fit in one page (each
     // count is independently configurable), so this is generic: whichever
     // panel shows it sub-pages through the rest on the same global rotation
-    // tick, using that content's own item count for the page math.
-    function paginatedContent(items, header, color, colorName) {
-        const pageCount = Math.max(1, Math.ceil(items.length / root.rowsPerPage))
+    // tick, using that content's own item count for the page math. When a
+    // panel side is "alone" (the other side is blank and it fills the full
+    // width), it gets double the per-page capacity laid out as 2 sub-columns
+    // instead of pagination, so e.g. 6 configured items show all at once.
+    function paginatedContent(items, header, color, colorName, alone) {
+        const perPage = alone ? root.rowsPerPage * 2 : root.rowsPerPage
+        const pageCount = Math.max(1, Math.ceil(items.length / perPage))
         const subPage = root.rotationPage % pageCount
-        const offset = subPage * root.rowsPerPage
+        const offset = subPage * perPage
         const pageSuffix = pageCount > 1 ? " (" + (subPage + 1) + "/" + pageCount + ")" : ""
+        const pageItems = items.slice(offset, offset + perPage)
         return {
-            items: items.slice(offset, offset + root.rowsPerPage),
+            items: pageItems.slice(0, root.rowsPerPage),
+            items2: alone ? pageItems.slice(root.rowsPerPage, perPage) : [],
             header: header + pageSuffix,
             offset: offset,
+            offset2: offset + root.rowsPerPage,
             color: color,
             colorName: colorName,
             isNone: false
         }
     }
 
-    function contentFor(key) {
+    function contentFor(key, alone) {
         switch (key) {
         case "skills":
             return root.paginatedContent(
                 root.skillsData,
                 root.womData.skills_header ? root.womData.skills_header : "Top Skills",
-                Kirigami.Theme.positiveTextColor, false
+                Kirigami.Theme.positiveTextColor, false, alone
             )
         case "bosses":
             return root.paginatedContent(
                 root.bossesData,
                 root.womData.bosses_header ? root.womData.bosses_header : "Top Bosses",
-                Kirigami.Theme.neutralTextColor, false
+                Kirigami.Theme.neutralTextColor, false, alone
             )
         case "valuable_drops":
-            return root.paginatedContent(root.valuableDrops, "Valuable Drops", Kirigami.Theme.positiveTextColor, false)
+            return root.paginatedContent(root.valuableDrops, "Valuable Drops", Kirigami.Theme.positiveTextColor, false, alone)
         case "new_items": {
             // No natural "value" column for these (it's just "you got it"), so
             // the item name itself is the colored part instead of a value.
             const cl = root.womData.collection_log
             const clSuffix = cl ? " (" + cl.obtained + "/" + cl.total + ")" : ""
-            return root.paginatedContent(root.newItems, "New Collection Log Items" + clSuffix, Kirigami.Theme.neutralTextColor, true)
+            return root.paginatedContent(root.newItems, "New Collection Log Items" + clSuffix, Kirigami.Theme.neutralTextColor, true, alone)
         }
         case "combat_achievements":
-            return root.paginatedContent(root.combatAchievements, "Combat Achievements", Kirigami.Theme.neutralTextColor, false)
+            return root.paginatedContent(root.combatAchievements, "Combat Achievements", Kirigami.Theme.neutralTextColor, false, alone)
         case "ca_progress":
-            return root.paginatedContent(root.caProgress, "Combat Achievement Progress", Kirigami.Theme.neutralTextColor, false)
+            return root.paginatedContent(root.caProgress, "Combat Achievement Progress", Kirigami.Theme.neutralTextColor, false, alone)
         case "xp_milestones":
-            return root.paginatedContent(root.xpMilestones, "XP Milestones", Kirigami.Theme.positiveTextColor, false)
+            return root.paginatedContent(root.xpMilestones, "XP Milestones", Kirigami.Theme.positiveTextColor, false, alone)
         case "level_up":
-            return root.paginatedContent(root.levelUps, "Level Ups", Kirigami.Theme.positiveTextColor, false)
+            return root.paginatedContent(root.levelUps, "Level Ups", Kirigami.Theme.positiveTextColor, false, alone)
         case "quest_completed":
             // No natural "value" column (it's just "completed"), so the quest
             // name itself is the colored part, same treatment as new_items.
-            return root.paginatedContent(root.questsCompleted, "Quests Completed", Kirigami.Theme.positiveTextColor, true)
+            return root.paginatedContent(root.questsCompleted, "Quests Completed", Kirigami.Theme.positiveTextColor, true, alone)
         case "diary_tier_completed":
-            return root.paginatedContent(root.diaryTiers, "Achievement Diary Tiers", Kirigami.Theme.neutralTextColor, false)
+            return root.paginatedContent(root.diaryTiers, "Achievement Diary Tiers", Kirigami.Theme.neutralTextColor, false, alone)
         default:
-            return { items: [], header: "", offset: 0, color: Kirigami.Theme.disabledTextColor, colorName: false, isNone: true }
+            return { items: [], items2: [], header: "", offset: 0, offset2: 0, color: Kirigami.Theme.disabledTextColor, colorName: false, isNone: true }
         }
     }
 
@@ -118,8 +125,10 @@ PlasmoidItem {
         [Plasmoid.configuration.panel5Left, Plasmoid.configuration.panel5Right]
     ]
     readonly property var slideKeys: root.allPanelKeys.slice(0, root.panelCount)
-    readonly property var leftContent: root.contentFor(root.slideKeys[root.slideIndex][0])
-    readonly property var rightContent: root.contentFor(root.slideKeys[root.slideIndex][1])
+    readonly property bool leftAlone: root.slideKeys[root.slideIndex][1] === "none"
+    readonly property bool rightAlone: root.slideKeys[root.slideIndex][0] === "none"
+    readonly property var leftContent: root.contentFor(root.slideKeys[root.slideIndex][0], root.leftAlone)
+    readonly property var rightContent: root.contentFor(root.slideKeys[root.slideIndex][1], root.rightAlone)
     readonly property var leftItems: root.leftContent.items
     readonly property var rightItems: root.rightContent.items
     readonly property string leftHeader: root.leftContent.header
@@ -603,29 +612,74 @@ PlasmoidItem {
                     visible: root.leftItems.length === 0 && !root.leftContent.isNone
                 }
 
-                Repeater {
-                    model: root.leftItems
-                    delegate: RowLayout {
-                        required property var modelData
-                        required property int index
-                        Layout.fillWidth: true
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 16
 
-                        Text {
-                            Layout.fillWidth: true
-                            textFormat: root.leftContent.colorName ? Text.StyledText : Text.PlainText
-                            text: root.leftContent.colorName
-                                ? root.rowLabelRich(modelData, root.leftContent.color)
-                                : root.rowLabel(modelData, index, root.leftPageOffset)
-                            font.pixelSize: 13
-                            color: Kirigami.Theme.textColor
-                            elide: Text.ElideRight
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 4
+                        Repeater {
+                            model: root.leftItems
+                            delegate: RowLayout {
+                                required property var modelData
+                                required property int index
+                                Layout.fillWidth: true
+
+                                Text {
+                                    Layout.fillWidth: true
+                                    textFormat: root.leftContent.colorName ? Text.StyledText : Text.PlainText
+                                    text: root.leftContent.colorName
+                                        ? root.rowLabelRich(modelData, root.leftContent.color)
+                                        : root.rowLabel(modelData, index, root.leftPageOffset)
+                                    font.pixelSize: 13
+                                    color: Kirigami.Theme.textColor
+                                    elide: Text.ElideRight
+                                }
+                                Text {
+                                    text: modelData.prefix + root.fmt(modelData.value) + " " + modelData.suffix
+                                    font.pixelSize: 13
+                                    font.bold: true
+                                    color: root.leftContent.color
+                                    visible: !root.leftContent.colorName
+                                }
+                            }
                         }
-                        Text {
-                            text: modelData.prefix + root.fmt(modelData.value) + " " + modelData.suffix
-                            font.pixelSize: 13
-                            font.bold: true
-                            color: root.leftContent.color
-                            visible: !root.leftContent.colorName
+                    }
+
+                    // Second sub-column: only populated when this side is
+                    // "alone" (the other side is blank) and has more than
+                    // rowsPerPage items, so they all show at once instead of
+                    // paginating across separate rotation ticks.
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 4
+                        visible: root.leftContent.items2.length > 0
+                        Repeater {
+                            model: root.leftContent.items2
+                            delegate: RowLayout {
+                                required property var modelData
+                                required property int index
+                                Layout.fillWidth: true
+
+                                Text {
+                                    Layout.fillWidth: true
+                                    textFormat: root.leftContent.colorName ? Text.StyledText : Text.PlainText
+                                    text: root.leftContent.colorName
+                                        ? root.rowLabelRich(modelData, root.leftContent.color)
+                                        : root.rowLabel(modelData, index, root.leftContent.offset2)
+                                    font.pixelSize: 13
+                                    color: Kirigami.Theme.textColor
+                                    elide: Text.ElideRight
+                                }
+                                Text {
+                                    text: modelData.prefix + root.fmt(modelData.value) + " " + modelData.suffix
+                                    font.pixelSize: 13
+                                    font.bold: true
+                                    color: root.leftContent.color
+                                    visible: !root.leftContent.colorName
+                                }
+                            }
                         }
                     }
                 }
@@ -659,29 +713,70 @@ PlasmoidItem {
                     visible: root.rightItems.length === 0 && !root.rightContent.isNone
                 }
 
-                Repeater {
-                    model: root.rightItems
-                    delegate: RowLayout {
-                        required property var modelData
-                        required property int index
-                        Layout.fillWidth: true
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 16
 
-                        Text {
-                            Layout.fillWidth: true
-                            textFormat: root.rightContent.colorName ? Text.StyledText : Text.PlainText
-                            text: root.rightContent.colorName
-                                ? root.rowLabelRich(modelData, root.rightContent.color)
-                                : root.rowLabel(modelData, index, 0)
-                            font.pixelSize: 13
-                            color: Kirigami.Theme.textColor
-                            elide: Text.ElideRight
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 4
+                        Repeater {
+                            model: root.rightItems
+                            delegate: RowLayout {
+                                required property var modelData
+                                required property int index
+                                Layout.fillWidth: true
+
+                                Text {
+                                    Layout.fillWidth: true
+                                    textFormat: root.rightContent.colorName ? Text.StyledText : Text.PlainText
+                                    text: root.rightContent.colorName
+                                        ? root.rowLabelRich(modelData, root.rightContent.color)
+                                        : root.rowLabel(modelData, index, root.rightContent.offset)
+                                    font.pixelSize: 13
+                                    color: Kirigami.Theme.textColor
+                                    elide: Text.ElideRight
+                                }
+                                Text {
+                                    text: modelData.prefix + root.fmt(modelData.value) + " " + modelData.suffix
+                                    font.pixelSize: 13
+                                    font.bold: true
+                                    color: root.rightContent.color
+                                    visible: !root.rightContent.colorName
+                                }
+                            }
                         }
-                        Text {
-                            text: modelData.prefix + root.fmt(modelData.value) + " " + modelData.suffix
-                            font.pixelSize: 13
-                            font.bold: true
-                            color: root.rightContent.color
-                            visible: !root.rightContent.colorName
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 4
+                        visible: root.rightContent.items2.length > 0
+                        Repeater {
+                            model: root.rightContent.items2
+                            delegate: RowLayout {
+                                required property var modelData
+                                required property int index
+                                Layout.fillWidth: true
+
+                                Text {
+                                    Layout.fillWidth: true
+                                    textFormat: root.rightContent.colorName ? Text.StyledText : Text.PlainText
+                                    text: root.rightContent.colorName
+                                        ? root.rowLabelRich(modelData, root.rightContent.color)
+                                        : root.rowLabel(modelData, index, root.rightContent.offset2)
+                                    font.pixelSize: 13
+                                    color: Kirigami.Theme.textColor
+                                    elide: Text.ElideRight
+                                }
+                                Text {
+                                    text: modelData.prefix + root.fmt(modelData.value) + " " + modelData.suffix
+                                    font.pixelSize: 13
+                                    font.bold: true
+                                    color: root.rightContent.color
+                                    visible: !root.rightContent.colorName
+                                }
+                            }
                         }
                     }
                 }

@@ -31,7 +31,10 @@ account, using the [Wise Old Man](https://docs.wiseoldman.net/) and
   panel. This is how you see all 6 combat achievement tiers, for example,
   instead of only the first 3 (Easy/Medium/Hard) that fit on one page. If
   a panel's left or right side is set to "None (blank)", the other side
-  stretches to fill the full width instead of leaving a dead column. The
+  stretches to fill the full width instead of leaving a dead column — and
+  doubles its per-page item count (e.g. 6 instead of 3), laid out as 2
+  sub-columns side by side, so it can use that width for more items at
+  once instead of just wider ones. The
   RuneProfile-sourced content (everything except skills/bosses) requires
   the account to be tracked there (the free RuneLite plugin does this
   automatically); if it isn't, those panels just show "No data yet".
