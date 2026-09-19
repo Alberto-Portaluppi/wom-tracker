@@ -31,6 +31,14 @@ KCM.SimpleKCM {
     property alias cfg_minDropValue: minDropValueSpin.value
     property alias cfg_dropsSortByValue: dropsSortByValueCheck.checked
     property alias cfg_showRank: showRankCheck.checked
+    property alias cfg_valuableDropsN: valuableDropsNSpin.value
+    property alias cfg_newItemsN: newItemsNSpin.value
+    property alias cfg_combatAchievementsN: combatAchievementsNSpin.value
+    property alias cfg_caProgressN: caProgressNSpin.value
+    property alias cfg_xpMilestonesN: xpMilestonesNSpin.value
+    property alias cfg_levelUpN: levelUpNSpin.value
+    property alias cfg_questCompletedN: questCompletedNSpin.value
+    property alias cfg_diaryTierN: diaryTierNSpin.value
 
     readonly property var periodModel: [
         { text: "Day", value: "day" },
@@ -229,6 +237,60 @@ KCM.SimpleKCM {
             model: page.contentModel
             visible: page.cfg_panelCount >= 5
             onActivated: page.cfg_panel5Right = page.contentModel[currentIndex].value
+        }
+
+        Kirigami.Separator {
+            Kirigami.FormData.label: "Item counts"
+            Kirigami.FormData.isSection: true
+        }
+
+        QQC2.SpinBox {
+            id: valuableDropsNSpin
+            Kirigami.FormData.label: "Valuable drops:"
+            from: 1
+            to: 15
+        }
+        QQC2.SpinBox {
+            id: newItemsNSpin
+            Kirigami.FormData.label: "New collection log items:"
+            from: 1
+            to: 15
+        }
+        QQC2.SpinBox {
+            id: combatAchievementsNSpin
+            Kirigami.FormData.label: "Combat achievements completed:"
+            from: 1
+            to: 15
+        }
+        QQC2.SpinBox {
+            id: caProgressNSpin
+            Kirigami.FormData.label: "Combat achievement progress tiers:"
+            from: 1
+            to: 6
+        }
+        QQC2.SpinBox {
+            id: xpMilestonesNSpin
+            Kirigami.FormData.label: "XP milestones:"
+            from: 1
+            to: 15
+        }
+        QQC2.SpinBox {
+            id: levelUpNSpin
+            Kirigami.FormData.label: "Level ups:"
+            from: 1
+            to: 15
+        }
+        QQC2.SpinBox {
+            id: questCompletedNSpin
+            Kirigami.FormData.label: "Quests completed:"
+            from: 1
+            to: 15
+        }
+        QQC2.SpinBox {
+            id: diaryTierNSpin
+            Kirigami.FormData.label: "Achievement diary tiers:"
+            from: 1
+            to: 15
         }
 
         Kirigami.Separator {

@@ -49,60 +49,62 @@ PlasmoidItem {
     readonly property int panelCount: Math.max(1, Math.min(5, Plasmoid.configuration.panelCount))
     readonly property int slideIndex: root.rotationPage % root.panelCount
 
-    readonly property int skillPageCount: Math.max(1, Math.ceil(root.skillsData.length / root.rowsPerPage))
-    readonly property int bossPageCount: Math.max(1, Math.ceil(root.bossesData.length / root.rowsPerPage))
-    readonly property int skillSubPage: root.rotationPage % root.skillPageCount
-    readonly property int bossSubPage: root.rotationPage % root.bossPageCount
+    // Every content type can now have more items than fit in one page (each
+    // count is independently configurable), so this is generic: whichever
+    // panel shows it sub-pages through the rest on the same global rotation
+    // tick, using that content's own item count for the page math.
+    function paginatedContent(items, header, color, colorName) {
+        const pageCount = Math.max(1, Math.ceil(items.length / root.rowsPerPage))
+        const subPage = root.rotationPage % pageCount
+        const offset = subPage * root.rowsPerPage
+        const pageSuffix = pageCount > 1 ? " (" + (subPage + 1) + "/" + pageCount + ")" : ""
+        return {
+            items: items.slice(offset, offset + root.rowsPerPage),
+            header: header + pageSuffix,
+            offset: offset,
+            color: color,
+            colorName: colorName,
+            isNone: false
+        }
+    }
 
     function contentFor(key) {
         switch (key) {
-        case "skills": {
-            const offset = root.skillSubPage * root.rowsPerPage
-            const pageSuffix = root.skillPageCount > 1 ? " (" + (root.skillSubPage + 1) + "/" + root.skillPageCount + ")" : ""
-            return {
-                items: root.skillsData.slice(offset, offset + root.rowsPerPage),
-                header: (root.womData.skills_header ? root.womData.skills_header : "Top Skills") + pageSuffix,
-                offset: offset,
-                color: Kirigami.Theme.positiveTextColor,
-                colorName: false,
-                isNone: false
-            }
-        }
-        case "bosses": {
-            const offset = root.bossSubPage * root.rowsPerPage
-            const pageSuffix = root.bossPageCount > 1 ? " (" + (root.bossSubPage + 1) + "/" + root.bossPageCount + ")" : ""
-            return {
-                items: root.bossesData.slice(offset, offset + root.rowsPerPage),
-                header: (root.womData.bosses_header ? root.womData.bosses_header : "Top Bosses") + pageSuffix,
-                offset: offset,
-                color: Kirigami.Theme.neutralTextColor,
-                colorName: false,
-                isNone: false
-            }
-        }
+        case "skills":
+            return root.paginatedContent(
+                root.skillsData,
+                root.womData.skills_header ? root.womData.skills_header : "Top Skills",
+                Kirigami.Theme.positiveTextColor, false
+            )
+        case "bosses":
+            return root.paginatedContent(
+                root.bossesData,
+                root.womData.bosses_header ? root.womData.bosses_header : "Top Bosses",
+                Kirigami.Theme.neutralTextColor, false
+            )
         case "valuable_drops":
-            return { items: root.valuableDrops, header: "Valuable Drops", offset: 0, color: Kirigami.Theme.positiveTextColor, colorName: false, isNone: false }
+            return root.paginatedContent(root.valuableDrops, "Valuable Drops", Kirigami.Theme.positiveTextColor, false)
         case "new_items": {
             // No natural "value" column for these (it's just "you got it"), so
             // the item name itself is the colored part instead of a value.
             const cl = root.womData.collection_log
             const clSuffix = cl ? " (" + cl.obtained + "/" + cl.total + ")" : ""
-            return { items: root.newItems, header: "New Collection Log Items" + clSuffix, offset: 0, color: Kirigami.Theme.neutralTextColor, colorName: true, isNone: false }
+            return root.paginatedContent(root.newItems, "New Collection Log Items" + clSuffix, Kirigami.Theme.neutralTextColor, true)
         }
         case "combat_achievements":
-            return { items: root.combatAchievements, header: "Combat Achievements", offset: 0, color: Kirigami.Theme.neutralTextColor, colorName: false, isNone: false }
+            return root.paginatedContent(root.combatAchievements, "Combat Achievements", Kirigami.Theme.neutralTextColor, false)
         case "ca_progress":
-            return { items: root.caProgress, header: "Combat Achievement Progress", offset: 0, color: Kirigami.Theme.neutralTextColor, colorName: false, isNone: false }
+            return root.paginatedContent(root.caProgress, "Combat Achievement Progress", Kirigami.Theme.neutralTextColor, false)
         case "xp_milestones":
-            return { items: root.xpMilestones, header: "XP Milestones", offset: 0, color: Kirigami.Theme.positiveTextColor, colorName: false, isNone: false }
+            return root.paginatedContent(root.xpMilestones, "XP Milestones", Kirigami.Theme.positiveTextColor, false)
         case "level_up":
-            return { items: root.levelUps, header: "Level Ups", offset: 0, color: Kirigami.Theme.positiveTextColor, colorName: false, isNone: false }
+            return root.paginatedContent(root.levelUps, "Level Ups", Kirigami.Theme.positiveTextColor, false)
         case "quest_completed":
             // No natural "value" column (it's just "completed"), so the quest
             // name itself is the colored part, same treatment as new_items.
-            return { items: root.questsCompleted, header: "Quests Completed", offset: 0, color: Kirigami.Theme.positiveTextColor, colorName: true, isNone: false }
+            return root.paginatedContent(root.questsCompleted, "Quests Completed", Kirigami.Theme.positiveTextColor, true)
         case "diary_tier_completed":
-            return { items: root.diaryTiers, header: "Achievement Diary Tiers", offset: 0, color: Kirigami.Theme.neutralTextColor, colorName: false, isNone: false }
+            return root.paginatedContent(root.diaryTiers, "Achievement Diary Tiers", Kirigami.Theme.neutralTextColor, false)
         default:
             return { items: [], header: "", offset: 0, color: Kirigami.Theme.disabledTextColor, colorName: false, isNone: true }
         }
@@ -124,9 +126,11 @@ PlasmoidItem {
     readonly property string rightHeader: root.rightContent.header
     readonly property int leftPageOffset: root.leftContent.offset
 
+    // Always runs: even with a single panel, its own content might have more
+    // items than fit on one page and need to sub-page on this same tick.
     Timer {
         interval: root.rotationSeconds * 1000
-        running: root.panelCount > 1
+        running: true
         repeat: true
         onTriggered: root.rotationPage = root.rotationPage + 1
     }
@@ -230,7 +234,15 @@ PlasmoidItem {
             card_width: Plasmoid.configuration.cardWidth,
             card_height: Plasmoid.configuration.cardHeight,
             min_drop_value: Plasmoid.configuration.minDropValue,
-            drops_sort_by_value: Plasmoid.configuration.dropsSortByValue
+            drops_sort_by_value: Plasmoid.configuration.dropsSortByValue,
+            valuable_drops_n: Plasmoid.configuration.valuableDropsN,
+            new_items_n: Plasmoid.configuration.newItemsN,
+            combat_achievements_n: Plasmoid.configuration.combatAchievementsN,
+            ca_progress_n: Plasmoid.configuration.caProgressN,
+            xp_milestones_n: Plasmoid.configuration.xpMilestonesN,
+            level_up_n: Plasmoid.configuration.levelUpN,
+            quest_completed_n: Plasmoid.configuration.questCompletedN,
+            diary_tier_n: Plasmoid.configuration.diaryTierN
         })
     }
 
@@ -250,6 +262,14 @@ PlasmoidItem {
         function onCardHeightChanged() { if (root.configLoaded) configSyncDebounce.restart() }
         function onMinDropValueChanged() { if (root.configLoaded) configSyncDebounce.restart() }
         function onDropsSortByValueChanged() { if (root.configLoaded) configSyncDebounce.restart() }
+        function onValuableDropsNChanged() { if (root.configLoaded) configSyncDebounce.restart() }
+        function onNewItemsNChanged() { if (root.configLoaded) configSyncDebounce.restart() }
+        function onCombatAchievementsNChanged() { if (root.configLoaded) configSyncDebounce.restart() }
+        function onCaProgressNChanged() { if (root.configLoaded) configSyncDebounce.restart() }
+        function onXpMilestonesNChanged() { if (root.configLoaded) configSyncDebounce.restart() }
+        function onLevelUpNChanged() { if (root.configLoaded) configSyncDebounce.restart() }
+        function onQuestCompletedNChanged() { if (root.configLoaded) configSyncDebounce.restart() }
+        function onDiaryTierNChanged() { if (root.configLoaded) configSyncDebounce.restart() }
     }
 
     // A fresh applet instance starts with KCFG defaults ("YourRSN", etc.), which
@@ -267,6 +287,14 @@ PlasmoidItem {
             if (json.card_height) Plasmoid.configuration.cardHeight = json.card_height
             if (json.min_drop_value) Plasmoid.configuration.minDropValue = json.min_drop_value
             if (json.drops_sort_by_value) Plasmoid.configuration.dropsSortByValue = json.drops_sort_by_value
+            if (json.valuable_drops_n) Plasmoid.configuration.valuableDropsN = json.valuable_drops_n
+            if (json.new_items_n) Plasmoid.configuration.newItemsN = json.new_items_n
+            if (json.combat_achievements_n) Plasmoid.configuration.combatAchievementsN = json.combat_achievements_n
+            if (json.ca_progress_n) Plasmoid.configuration.caProgressN = json.ca_progress_n
+            if (json.xp_milestones_n) Plasmoid.configuration.xpMilestonesN = json.xp_milestones_n
+            if (json.level_up_n) Plasmoid.configuration.levelUpN = json.level_up_n
+            if (json.quest_completed_n) Plasmoid.configuration.questCompletedN = json.quest_completed_n
+            if (json.diary_tier_n) Plasmoid.configuration.diaryTierN = json.diary_tier_n
         }
     }
 

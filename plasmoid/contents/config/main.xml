@@ -73,5 +73,45 @@
     <entry name="showRank" type="Bool">
       <default>true</default>
     </entry>
+    <entry name="valuableDropsN" type="Int">
+      <default>3</default>
+      <min>1</min>
+      <max>15</max>
+    </entry>
+    <entry name="newItemsN" type="Int">
+      <default>3</default>
+      <min>1</min>
+      <max>15</max>
+    </entry>
+    <entry name="combatAchievementsN" type="Int">
+      <default>3</default>
+      <min>1</min>
+      <max>15</max>
+    </entry>
+    <entry name="caProgressN" type="Int">
+      <default>3</default>
+      <min>1</min>
+      <max>6</max>
+    </entry>
+    <entry name="xpMilestonesN" type="Int">
+      <default>3</default>
+      <min>1</min>
+      <max>15</max>
+    </entry>
+    <entry name="levelUpN" type="Int">
+      <default>3</default>
+      <min>1</min>
+      <max>15</max>
+    </entry>
+    <entry name="questCompletedN" type="Int">
+      <default>3</default>
+      <min>1</min>
+      <max>15</max>
+    </entry>
+    <entry name="diaryTierN" type="Int">
+      <default>3</default>
+      <min>1</min>
+      <max>15</max>
+    </entry>
   </group>
 </kcfg>

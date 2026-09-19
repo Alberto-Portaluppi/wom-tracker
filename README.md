@@ -25,11 +25,14 @@ account, using the [Wise Old Man](https://docs.wiseoldman.net/) and
   — no rotation, nothing irrelevant shown — since most of that activity
   data doesn't matter to everyone (e.g. a maxed account with quest cape
   has no use for level-up or quest-completed panels). Add panels for more.
-  If `skill_top_n`/`boss_top_n` is set above 3, whichever panel shows them
-  gets extra sub-pages, paired with whatever is on the other side of that
-  panel. The RuneProfile-sourced content (everything except skills/bosses)
-  requires the account to be tracked there (the free RuneLite plugin does
-  this automatically); if it isn't, those panels just show "No data yet".
+  Every content type has its own configurable item count (3 by default) —
+  if set above 3, whichever panel shows it gets extra sub-pages on the
+  same rotation tick, paired with whatever is on the other side of that
+  panel. This is how you see all 6 combat achievement tiers, for example,
+  instead of only the first 3 (Easy/Medium/Hard) that fit on one page. The
+  RuneProfile-sourced content (everything except skills/bosses) requires
+  the account to be tracked there (the free RuneLite plugin does this
+  automatically); if it isn't, those panels just show "No data yet".
 - Settings live in `~/.config/wom-tracker/config.json`, editable either
   directly or through the widget's own native **Configure...** dialog
   (right-click the widget → Configure Wise Old Man Tracker), backed by a
@@ -67,9 +70,11 @@ The easiest way is right-clicking the widget → **Configure Wise Old Man
 Tracker...** → **General** tab: RSN, period, top N skills/bosses, widget
 size, the history graph's day range, the rotation speed, how many panels
 to rotate through (1–5, under "Panels") and what each panel's left/right
-column shows, and under "Other": whether to show your hiscores rank, a
-minimum gp value for valuable drops, and whether to sort drops by value
-instead of date — are all there, applied immediately on OK/Apply.
+column shows, how many items to track per content type (under "Item
+counts" — e.g. bump "Combat achievement progress tiers" to 6 to see every
+tier), and under "Other": whether to show your hiscores rank, a minimum
+gp value for valuable drops, and whether to sort drops by value instead
+of date — are all there, applied immediately on OK/Apply.
 
 For settings not exposed in that dialog (like the refresh interval), edit
 `~/.config/wom-tracker/config.json` directly:
@@ -84,7 +89,15 @@ For settings not exposed in that dialog (like the refresh interval), edit
   "card_height": 92,
   "refresh_minutes": 30,
   "min_drop_value": 0,
-  "drops_sort_by_value": false
+  "drops_sort_by_value": false,
+  "valuable_drops_n": 3,
+  "new_items_n": 3,
+  "combat_achievements_n": 3,
+  "ca_progress_n": 3,
+  "xp_milestones_n": 3,
+  "level_up_n": 3,
+  "quest_completed_n": 3,
+  "diary_tier_n": 3
 }
 ```
 
@@ -92,11 +105,12 @@ For settings not exposed in that dialog (like the refresh interval), edit
 |---|---|
 | `username` | RSN of the account to track |
 | `period` | `day`, `week`, `month`, `year`, or `all_time`. With `all_time`, the top lists rank by career total (XP/KC) instead of gains over a period |
-| `skill_top_n` / `boss_top_n` | how many skills/bosses to track. Only 3 are shown at a time — if set higher, the panel showing them gets extra sub-pages, shown as a "(page/total)" indicator in the header |
+| `skill_top_n` / `boss_top_n` | how many skills/bosses to track |
+| `*_n` fields | how many items to track for each content type. Only 3 fit on screen at a time — set higher and the panel showing that content gets extra sub-pages, shown as a "(page/total)" indicator in the header. `ca_progress_n` caps at 6 (there are only 6 tiers) |
 | `card_width` / `card_height` | widget size in pixels — useful if your panel/monitor clips the widget |
 | `refresh_minutes` | how often the systemd timer fetches new data |
-| `min_drop_value` | ignore valuable drops below this gp value (looks back up to the last 50 drops to fill 3 slots) |
-| `drops_sort_by_value` | `true` shows the 3 biggest drops (from that same pool) instead of the 3 most recent |
+| `min_drop_value` | ignore valuable drops below this gp value (looks back up to the last 50 drops to fill the configured count) |
+| `drops_sort_by_value` | `true` shows the biggest drops (from that same pool) instead of the most recent |
 
 Number formatting (thousands separator, etc.) follows your system locale
 automatically — no config needed there.

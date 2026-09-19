@@ -34,6 +34,14 @@ DEFAULT_CONFIG = {
     "refresh_minutes": 30,
     "min_drop_value": 0,
     "drops_sort_by_value": False,
+    "valuable_drops_n": 3,
+    "new_items_n": 3,
+    "combat_achievements_n": 3,
+    "ca_progress_n": 3,
+    "xp_milestones_n": 3,
+    "level_up_n": 3,
+    "quest_completed_n": 3,
+    "diary_tier_n": 3,
 }
 
 DROPS_POOL_SIZE = 50  # how far back to look before filtering/sorting valuable drops
@@ -261,7 +269,7 @@ def format_diary_tiers(items: list) -> list:
     ]
 
 
-def format_ca_progress(tiers: list) -> list:
+def format_ca_progress(tiers: list, n: int) -> list:
     incomplete = [t for t in tiers if t["completed"] < t["total"]]
     return [
         {
@@ -270,12 +278,12 @@ def format_ca_progress(tiers: list) -> list:
             "suffix": "",
             "prefix": "",
         }
-        for t in incomplete[:3]
+        for t in incomplete[:n]
     ]
 
 
-def fetch_valuable_drops(username: str, min_value: int, sort_by_value: bool, n: int = 3) -> list:
-    items = fetch_activities(username, "valuable_drop", limit=DROPS_POOL_SIZE)
+def fetch_valuable_drops(username: str, min_value: int, sort_by_value: bool, n: int) -> list:
+    items = fetch_activities(username, "valuable_drop", limit=max(DROPS_POOL_SIZE, n))
     items = [item for item in items if item["data"]["value"] >= min_value]
     if sort_by_value:
         items.sort(key=lambda item: item["data"]["value"], reverse=True)
@@ -290,17 +298,27 @@ def fetch_runeprofile_extras(username: str, config: dict) -> dict:
     summary = fetch_account_summary(username)
     return {
         "valuable_drops": fetch_valuable_drops(
-            username, config["min_drop_value"], config["drops_sort_by_value"]
+            username, config["min_drop_value"], config["drops_sort_by_value"], config["valuable_drops_n"]
         ),
-        "new_items": format_new_items(fetch_activities(username, "new_item_obtained")),
+        "new_items": format_new_items(
+            fetch_activities(username, "new_item_obtained", limit=config["new_items_n"])
+        ),
         "combat_achievements": format_combat_achievements(
-            fetch_activities(username, "combat_achievement_task_completed")
+            fetch_activities(username, "combat_achievement_task_completed", limit=config["combat_achievements_n"])
         ),
-        "xp_milestones": format_xp_milestones(fetch_activities(username, "xp_milestone")),
-        "level_ups": format_level_ups(fetch_activities(username, "level_up")),
-        "quests_completed": format_quests_completed(fetch_activities(username, "quest_completed")),
-        "diary_tiers": format_diary_tiers(fetch_activities(username, "achievement_diary_tier_completed")),
-        "ca_progress": format_ca_progress(summary.get("combatAchievements", [])) if summary else [],
+        "xp_milestones": format_xp_milestones(
+            fetch_activities(username, "xp_milestone", limit=config["xp_milestones_n"])
+        ),
+        "level_ups": format_level_ups(
+            fetch_activities(username, "level_up", limit=config["level_up_n"])
+        ),
+        "quests_completed": format_quests_completed(
+            fetch_activities(username, "quest_completed", limit=config["quest_completed_n"])
+        ),
+        "diary_tiers": format_diary_tiers(
+            fetch_activities(username, "achievement_diary_tier_completed", limit=config["diary_tier_n"])
+        ),
+        "ca_progress": format_ca_progress(summary.get("combatAchievements", []), config["ca_progress_n"]) if summary else [],
         "collection_log": summary.get("collectionLog") if summary else None,
     }
 
@@ -361,6 +379,14 @@ def main() -> int:
         "card_height": config["card_height"],
         "min_drop_value": config["min_drop_value"],
         "drops_sort_by_value": config["drops_sort_by_value"],
+        "valuable_drops_n": config["valuable_drops_n"],
+        "new_items_n": config["new_items_n"],
+        "combat_achievements_n": config["combat_achievements_n"],
+        "ca_progress_n": config["ca_progress_n"],
+        "xp_milestones_n": config["xp_milestones_n"],
+        "level_up_n": config["level_up_n"],
+        "quest_completed_n": config["quest_completed_n"],
+        "diary_tier_n": config["diary_tier_n"],
     }
 
     CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
