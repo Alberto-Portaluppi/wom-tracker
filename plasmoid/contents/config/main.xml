@@ -29,5 +29,23 @@
     <entry name="rotationSeconds" type="Int">
       <default>10</default>
     </entry>
+    <entry name="slide1Left" type="String">
+      <default>skills</default>
+    </entry>
+    <entry name="slide1Right" type="String">
+      <default>xp_milestones</default>
+    </entry>
+    <entry name="slide2Left" type="String">
+      <default>valuable_drops</default>
+    </entry>
+    <entry name="slide2Right" type="String">
+      <default>new_items</default>
+    </entry>
+    <entry name="slide3Left" type="String">
+      <default>bosses</default>
+    </entry>
+    <entry name="slide3Right" type="String">
+      <default>combat_achievements</default>
+    </entry>
   </group>
 </kcfg>

@@ -16,15 +16,18 @@ APIs.
 - A systemd `--user` timer runs that script periodically.
 - The widget (`plasmoid/`) reads `data.json` via a `DataSource` (`executable`
   engine, `cat`-ing the file) and refreshes itself on the same interval.
-- The two right-hand columns rotate through three synchronized slides, like
-  a display sign: (top skills, XP milestones) → (valuable drops, new
-  collection log items) → (top bosses, combat achievements completed) →
-  back to the start. If `skill_top_n`/`boss_top_n` is set above 3, that
-  slide gets extra sub-pages first, still paired with the same milestones/
-  achievements content. The activity data (drops, achievements, new items,
-  milestones) comes from [RuneProfile](https://runeprofile.com) — this
-  requires the account to be tracked there (the free RuneLite plugin does
-  this automatically); if it isn't, those slides just show "No data yet".
+- The two right-hand columns rotate through 3 slides, like a display sign.
+  Each slide's left/right content is independently configurable (top
+  skills, top bosses, valuable drops, new collection log items, combat
+  achievements, XP milestones, or blank) — by default: (top skills, XP
+  milestones) → (valuable drops, new collection log items) → (top bosses,
+  combat achievements) → back to the start. If `skill_top_n`/`boss_top_n`
+  is set above 3, whichever slide shows them gets extra sub-pages, paired
+  with whatever is on the other side of that slide. The activity data
+  (drops, achievements, new items, milestones) comes from
+  [RuneProfile](https://runeprofile.com) — this requires the account to be
+  tracked there (the free RuneLite plugin does this automatically); if it
+  isn't, those slides just show "No data yet".
 - Settings live in `~/.config/wom-tracker/config.json`, editable either
   directly or through the widget's own native **Configure...** dialog
   (right-click the widget → Configure Wise Old Man Tracker), backed by a
@@ -60,8 +63,11 @@ not, remove the widget from the desktop and add it back fresh.
 
 The easiest way is right-clicking the widget → **Configure Wise Old Man
 Tracker...** → **General** tab: RSN, period, top N skills/bosses, widget
-size, the history graph's day range, and the slide rotation speed are all
-there, applied immediately on OK/Apply.
+size, the history graph's day range, the slide rotation speed, and — under
+"Slide content" — what each of the 3 slides' left/right columns shows, are
+all there, applied immediately on OK/Apply. Options per slot: top skills,
+top bosses, valuable drops, new collection log items, combat achievements,
+XP milestones, or blank.
 
 For settings not exposed in that dialog (like the refresh interval), edit
 `~/.config/wom-tracker/config.json` directly:

@@ -31,49 +31,77 @@ PlasmoidItem {
     readonly property var combatAchievements: root.womData.combat_achievements ? root.womData.combat_achievements : []
     readonly property var xpMilestones: root.womData.xp_milestones ? root.womData.xp_milestones : []
 
-    // The two side columns cycle through three synchronized "slides" like a
-    // display sign: (skills, XP milestones) -> (valuable drops, new collection
-    // log items) -> (bosses, combat achievements) -> back to the start. If
-    // skill_top_n/boss_top_n is set above rowsPerPage, that slide itself gets
-    // extra sub-pages (still paired with the same milestones/CAs content).
+    // The two side columns cycle through 3 user-configurable slides like a
+    // display sign. Each slide independently picks what its left/right
+    // column shows (skills, bosses, valuable drops, new collection log
+    // items, combat achievements, XP milestones, or blank) via the native
+    // config dialog. Skills/bosses sub-page on the same global tick using
+    // their own item count, so if skill_top_n/boss_top_n is above
+    // rowsPerPage, whichever slide shows them cycles through all of their
+    // pages over multiple full rotations.
     readonly property int rowsPerPage: 3
     readonly property int rotationSeconds: Plasmoid.configuration.rotationSeconds
     property int rotationPage: 0
+    readonly property int slideIndex: root.rotationPage % 3
 
     readonly property int skillPageCount: Math.max(1, Math.ceil(root.skillsData.length / root.rowsPerPage))
     readonly property int bossPageCount: Math.max(1, Math.ceil(root.bossesData.length / root.rowsPerPage))
-    readonly property int totalSlides: root.skillPageCount + 1 + root.bossPageCount
-    readonly property int slideIndex: root.rotationPage % root.totalSlides
-    readonly property bool inDropsSlide: root.slideIndex === root.skillPageCount
-    readonly property bool inBossSlide: root.slideIndex > root.skillPageCount
+    readonly property int skillSubPage: root.rotationPage % root.skillPageCount
+    readonly property int bossSubPage: root.rotationPage % root.bossPageCount
 
-    readonly property int skillPageOffset: (!root.inDropsSlide && !root.inBossSlide) ? root.slideIndex * root.rowsPerPage : 0
-    readonly property int bossPageOffset: root.inBossSlide ? (root.slideIndex - root.skillPageCount - 1) * root.rowsPerPage : 0
+    function contentFor(key) {
+        switch (key) {
+        case "skills": {
+            const offset = root.skillSubPage * root.rowsPerPage
+            const pageSuffix = root.skillPageCount > 1 ? " (" + (root.skillSubPage + 1) + "/" + root.skillPageCount + ")" : ""
+            return {
+                items: root.skillsData.slice(offset, offset + root.rowsPerPage),
+                header: (root.womData.skills_header ? root.womData.skills_header : "Top Skills") + pageSuffix,
+                offset: offset,
+                color: Kirigami.Theme.positiveTextColor,
+                isNone: false
+            }
+        }
+        case "bosses": {
+            const offset = root.bossSubPage * root.rowsPerPage
+            const pageSuffix = root.bossPageCount > 1 ? " (" + (root.bossSubPage + 1) + "/" + root.bossPageCount + ")" : ""
+            return {
+                items: root.bossesData.slice(offset, offset + root.rowsPerPage),
+                header: (root.womData.bosses_header ? root.womData.bosses_header : "Top Bosses") + pageSuffix,
+                offset: offset,
+                color: Kirigami.Theme.neutralTextColor,
+                isNone: false
+            }
+        }
+        case "valuable_drops":
+            return { items: root.valuableDrops, header: "Valuable Drops", offset: 0, color: Kirigami.Theme.positiveTextColor, isNone: false }
+        case "new_items":
+            return { items: root.newItems, header: "New Collection Log Items", offset: 0, color: Kirigami.Theme.neutralTextColor, isNone: false }
+        case "combat_achievements":
+            return { items: root.combatAchievements, header: "Combat Achievements", offset: 0, color: Kirigami.Theme.neutralTextColor, isNone: false }
+        case "xp_milestones":
+            return { items: root.xpMilestones, header: "XP Milestones", offset: 0, color: Kirigami.Theme.positiveTextColor, isNone: false }
+        default:
+            return { items: [], header: "", offset: 0, color: Kirigami.Theme.disabledTextColor, isNone: true }
+        }
+    }
 
-    readonly property var leftItems: root.inDropsSlide
-        ? root.valuableDrops
-        : (root.inBossSlide
-            ? root.bossesData.slice(root.bossPageOffset, root.bossPageOffset + root.rowsPerPage)
-            : root.skillsData.slice(root.skillPageOffset, root.skillPageOffset + root.rowsPerPage))
-    readonly property var rightItems: root.inDropsSlide
-        ? root.newItems
-        : (root.inBossSlide ? root.combatAchievements : root.xpMilestones)
-    readonly property int leftPageOffset: root.inDropsSlide ? 0 : (root.inBossSlide ? root.bossPageOffset : root.skillPageOffset)
-
-    readonly property string leftHeader: root.inDropsSlide
-        ? "Valuable Drops"
-        : (root.inBossSlide
-            ? (root.womData.bosses_header ? root.womData.bosses_header : "Top Bosses")
-                + (root.bossPageCount > 1 ? " (" + (root.slideIndex - root.skillPageCount) + "/" + root.bossPageCount + ")" : "")
-            : (root.womData.skills_header ? root.womData.skills_header : "Top Skills")
-                + (root.skillPageCount > 1 ? " (" + (root.slideIndex + 1) + "/" + root.skillPageCount + ")" : ""))
-    readonly property string rightHeader: root.inDropsSlide
-        ? "New Collection Log Items"
-        : (root.inBossSlide ? "Combat Achievements" : "XP Milestones")
+    readonly property var slideKeys: [
+        [Plasmoid.configuration.slide1Left, Plasmoid.configuration.slide1Right],
+        [Plasmoid.configuration.slide2Left, Plasmoid.configuration.slide2Right],
+        [Plasmoid.configuration.slide3Left, Plasmoid.configuration.slide3Right]
+    ]
+    readonly property var leftContent: root.contentFor(root.slideKeys[root.slideIndex][0])
+    readonly property var rightContent: root.contentFor(root.slideKeys[root.slideIndex][1])
+    readonly property var leftItems: root.leftContent.items
+    readonly property var rightItems: root.rightContent.items
+    readonly property string leftHeader: root.leftContent.header
+    readonly property string rightHeader: root.rightContent.header
+    readonly property int leftPageOffset: root.leftContent.offset
 
     Timer {
         interval: root.rotationSeconds * 1000
-        running: root.totalSlides > 1
+        running: true
         repeat: true
         onTriggered: root.rotationPage = root.rotationPage + 1
     }
@@ -484,7 +512,7 @@ PlasmoidItem {
                     text: "No data yet"
                     font.pixelSize: 12
                     color: Kirigami.Theme.disabledTextColor
-                    visible: root.leftItems.length === 0
+                    visible: root.leftItems.length === 0 && !root.leftContent.isNone
                 }
 
                 Repeater {
@@ -505,7 +533,7 @@ PlasmoidItem {
                             text: modelData.prefix + root.fmt(modelData.value) + " " + modelData.suffix
                             font.pixelSize: 13
                             font.bold: true
-                            color: Kirigami.Theme.positiveTextColor
+                            color: root.leftContent.color
                         }
                     }
                 }
@@ -531,7 +559,7 @@ PlasmoidItem {
                     text: "No data yet"
                     font.pixelSize: 12
                     color: Kirigami.Theme.disabledTextColor
-                    visible: root.rightItems.length === 0
+                    visible: root.rightItems.length === 0 && !root.rightContent.isNone
                 }
 
                 Repeater {
@@ -552,7 +580,7 @@ PlasmoidItem {
                             text: modelData.prefix + root.fmt(modelData.value) + " " + modelData.suffix
                             font.pixelSize: 13
                             font.bold: true
-                            color: Kirigami.Theme.neutralTextColor
+                            color: root.rightContent.color
                         }
                     }
                 }
