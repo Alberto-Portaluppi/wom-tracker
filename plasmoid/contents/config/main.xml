@@ -47,5 +47,14 @@
     <entry name="slide3Right" type="String">
       <default>combat_achievements</default>
     </entry>
+    <entry name="minDropValue" type="Int">
+      <default>0</default>
+    </entry>
+    <entry name="dropsSortByValue" type="Bool">
+      <default>false</default>
+    </entry>
+    <entry name="showRank" type="Bool">
+      <default>true</default>
+    </entry>
   </group>
 </kcfg>

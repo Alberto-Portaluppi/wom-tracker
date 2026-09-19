@@ -77,10 +77,13 @@ PlasmoidItem {
         }
         case "valuable_drops":
             return { items: root.valuableDrops, header: "Valuable Drops", offset: 0, color: Kirigami.Theme.positiveTextColor, colorName: false, isNone: false }
-        case "new_items":
+        case "new_items": {
             // No natural "value" column for these (it's just "you got it"), so
             // the item name itself is the colored part instead of a value.
-            return { items: root.newItems, header: "New Collection Log Items", offset: 0, color: Kirigami.Theme.neutralTextColor, colorName: true, isNone: false }
+            const cl = root.womData.collection_log
+            const clSuffix = cl ? " (" + cl.obtained + "/" + cl.total + ")" : ""
+            return { items: root.newItems, header: "New Collection Log Items" + clSuffix, offset: 0, color: Kirigami.Theme.neutralTextColor, colorName: true, isNone: false }
+        }
         case "combat_achievements":
             return { items: root.combatAchievements, header: "Combat Achievements", offset: 0, color: Kirigami.Theme.neutralTextColor, colorName: false, isNone: false }
         case "xp_milestones":
@@ -114,9 +117,13 @@ PlasmoidItem {
     readonly property int historyDays: Plasmoid.configuration.historyDays
     onHistoryPointsChanged: historyCanvas.requestPaint()
 
+    // Respects the system locale (e.g. "." for pt_BR, "," for en_US) instead
+    // of hardcoding a separator, since this widget isn't only used by
+    // Portuguese speakers. Non-numeric values (dates, tier names) pass through.
     function fmt(n) {
         if (n === undefined || n === null) return "-"
-        return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")
+        if (typeof n === "number") return n.toLocaleString(Qt.locale(), 'f', 0)
+        return n.toString()
     }
 
     // Activity items (drops, CAs, new items, milestones) carry a date_label
@@ -203,7 +210,9 @@ PlasmoidItem {
             skill_top_n: Plasmoid.configuration.skillTopN,
             boss_top_n: Plasmoid.configuration.bossTopN,
             card_width: Plasmoid.configuration.cardWidth,
-            card_height: Plasmoid.configuration.cardHeight
+            card_height: Plasmoid.configuration.cardHeight,
+            min_drop_value: Plasmoid.configuration.minDropValue,
+            drops_sort_by_value: Plasmoid.configuration.dropsSortByValue
         })
     }
 
@@ -221,6 +230,8 @@ PlasmoidItem {
         function onBossTopNChanged() { if (root.configLoaded) configSyncDebounce.restart() }
         function onCardWidthChanged() { if (root.configLoaded) configSyncDebounce.restart() }
         function onCardHeightChanged() { if (root.configLoaded) configSyncDebounce.restart() }
+        function onMinDropValueChanged() { if (root.configLoaded) configSyncDebounce.restart() }
+        function onDropsSortByValueChanged() { if (root.configLoaded) configSyncDebounce.restart() }
     }
 
     // A fresh applet instance starts with KCFG defaults ("YourRSN", etc.), which
@@ -236,6 +247,8 @@ PlasmoidItem {
             if (json.boss_top_n) Plasmoid.configuration.bossTopN = json.boss_top_n
             if (json.card_width) Plasmoid.configuration.cardWidth = json.card_width
             if (json.card_height) Plasmoid.configuration.cardHeight = json.card_height
+            if (json.min_drop_value) Plasmoid.configuration.minDropValue = json.min_drop_value
+            if (json.drops_sort_by_value) Plasmoid.configuration.dropsSortByValue = json.drops_sort_by_value
         }
     }
 
@@ -505,6 +518,14 @@ PlasmoidItem {
                     font.pixelSize: 17
                     font.bold: true
                     color: Kirigami.Theme.textColor
+                }
+                Text {
+                    text: (root.overallData && root.overallData.rank !== undefined && root.overallData.rank !== null)
+                        ? "Rank #" + root.fmt(root.overallData.rank)
+                        : ""
+                    font.pixelSize: 10
+                    color: Kirigami.Theme.disabledTextColor
+                    visible: Plasmoid.configuration.showRank && text.length > 0
                 }
 
                 Item { Layout.fillHeight: true }

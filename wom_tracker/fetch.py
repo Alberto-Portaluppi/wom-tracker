@@ -32,7 +32,11 @@ DEFAULT_CONFIG = {
     "card_width": 978,
     "card_height": 92,
     "refresh_minutes": 30,
+    "min_drop_value": 0,
+    "drops_sort_by_value": False,
 }
+
+DROPS_POOL_SIZE = 50  # how far back to look before filtering/sorting valuable drops
 
 PERIOD_LABELS = {
     "day": "day",
@@ -218,14 +222,30 @@ def format_xp_milestones(items: list) -> list:
     ]
 
 
-def fetch_runeprofile_extras(username: str) -> dict:
+def fetch_valuable_drops(username: str, min_value: int, sort_by_value: bool, n: int = 3) -> list:
+    items = fetch_activities(username, "valuable_drop", limit=DROPS_POOL_SIZE)
+    items = [item for item in items if item["data"]["value"] >= min_value]
+    if sort_by_value:
+        items.sort(key=lambda item: item["data"]["value"], reverse=True)
+    return format_valuable_drops(items[:n])
+
+
+def fetch_collection_log_summary(username: str):
+    data = runeprofile_get(f"/accounts/{username}")
+    return data.get("collectionLog") if data else None
+
+
+def fetch_runeprofile_extras(username: str, config: dict) -> dict:
     return {
-        "valuable_drops": format_valuable_drops(fetch_activities(username, "valuable_drop")),
+        "valuable_drops": fetch_valuable_drops(
+            username, config["min_drop_value"], config["drops_sort_by_value"]
+        ),
         "new_items": format_new_items(fetch_activities(username, "new_item_obtained")),
         "combat_achievements": format_combat_achievements(
             fetch_activities(username, "combat_achievement_task_completed")
         ),
         "xp_milestones": format_xp_milestones(fetch_activities(username, "xp_milestone")),
+        "collection_log": fetch_collection_log_summary(username),
     }
 
 
@@ -254,12 +274,16 @@ def main() -> int:
     now = datetime.now(timezone.utc).isoformat()
     skills_label = "Total XP" if period == "all_time" else f"XP gained ({period_label})"
     bosses_label = "Total KC" if period == "all_time" else f"KC gained ({period_label})"
-    extras = fetch_runeprofile_extras(username)
+    extras = fetch_runeprofile_extras(username, config)
 
     result = {
         "username": player["displayName"],
         "updated_at": now,
-        "overall": {"experience": overall["experience"], "level": overall["level"]},
+        "overall": {
+            "experience": overall["experience"],
+            "level": overall["level"],
+            "rank": overall.get("rank"),
+        },
         "period": period,
         "period_label": period_label,
         "skill_top_n": config["skill_top_n"],
@@ -272,8 +296,11 @@ def main() -> int:
         "new_items": extras["new_items"],
         "combat_achievements": extras["combat_achievements"],
         "xp_milestones": extras["xp_milestones"],
+        "collection_log": extras["collection_log"],
         "card_width": config["card_width"],
         "card_height": config["card_height"],
+        "min_drop_value": config["min_drop_value"],
+        "drops_sort_by_value": config["drops_sort_by_value"],
     }
 
     CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)

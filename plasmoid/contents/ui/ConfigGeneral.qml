@@ -23,6 +23,9 @@ KCM.SimpleKCM {
     property string cfg_slide2Right: Plasmoid.configuration.slide2Right
     property string cfg_slide3Left: Plasmoid.configuration.slide3Left
     property string cfg_slide3Right: Plasmoid.configuration.slide3Right
+    property alias cfg_minDropValue: minDropValueSpin.value
+    property alias cfg_dropsSortByValue: dropsSortByValueCheck.checked
+    property alias cfg_showRank: showRankCheck.checked
 
     readonly property var periodModel: [
         { text: "Day", value: "day" },
@@ -170,6 +173,31 @@ KCM.SimpleKCM {
             textRole: "text"
             model: page.contentModel
             onActivated: page.cfg_slide3Right = page.contentModel[currentIndex].value
+        }
+
+        Kirigami.Separator {
+            Kirigami.FormData.label: "Other"
+            Kirigami.FormData.isSection: true
+        }
+
+        QQC2.CheckBox {
+            id: showRankCheck
+            Kirigami.FormData.label: "Overall column:"
+            text: "Show hiscores rank"
+        }
+
+        QQC2.SpinBox {
+            id: minDropValueSpin
+            Kirigami.FormData.label: "Minimum valuable drop value (gp):"
+            from: 0
+            to: 2000000000
+            stepSize: 100000
+            editable: true
+        }
+
+        QQC2.CheckBox {
+            id: dropsSortByValueCheck
+            text: "Sort valuable drops by value instead of date"
         }
     }
 }

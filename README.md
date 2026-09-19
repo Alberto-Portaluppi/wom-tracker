@@ -63,11 +63,13 @@ not, remove the widget from the desktop and add it back fresh.
 
 The easiest way is right-clicking the widget → **Configure Wise Old Man
 Tracker...** → **General** tab: RSN, period, top N skills/bosses, widget
-size, the history graph's day range, the slide rotation speed, and — under
-"Slide content" — what each of the 3 slides' left/right columns shows, are
-all there, applied immediately on OK/Apply. Options per slot: top skills,
-top bosses, valuable drops, new collection log items, combat achievements,
-XP milestones, or blank.
+size, the history graph's day range, the slide rotation speed, what each
+of the 3 slides' left/right columns shows ("Slide content"), and under
+"Other": whether to show your hiscores rank, a minimum gp value for
+valuable drops, and whether to sort drops by value instead of date — are
+all there, applied immediately on OK/Apply. Options per slide slot: top
+skills, top bosses, valuable drops, new collection log items, combat
+achievements, XP milestones, or blank.
 
 For settings not exposed in that dialog (like the refresh interval), edit
 `~/.config/wom-tracker/config.json` directly:
@@ -80,7 +82,9 @@ For settings not exposed in that dialog (like the refresh interval), edit
   "boss_top_n": 3,
   "card_width": 978,
   "card_height": 92,
-  "refresh_minutes": 30
+  "refresh_minutes": 30,
+  "min_drop_value": 0,
+  "drops_sort_by_value": false
 }
 ```
 
@@ -91,6 +95,11 @@ For settings not exposed in that dialog (like the refresh interval), edit
 | `skill_top_n` / `boss_top_n` | how many skills/bosses to track. Only 3 are shown at a time — if set higher, the skills/bosses slide gets extra sub-pages, shown as a "(page/total)" indicator in the header |
 | `card_width` / `card_height` | widget size in pixels — useful if your panel/monitor clips the widget |
 | `refresh_minutes` | how often the systemd timer fetches new data |
+| `min_drop_value` | ignore valuable drops below this gp value (looks back up to the last 50 drops to fill 3 slots) |
+| `drops_sort_by_value` | `true` shows the 3 biggest drops (from that same pool) instead of the 3 most recent |
+
+Number formatting (thousands separator, etc.) follows your system locale
+automatically — no config needed there.
 
 After a manual edit, run `python3 ~/.local/share/wom-tracker/fetch.py` once
 (or wait for the next timer tick) to apply it.
@@ -102,8 +111,10 @@ Left here for anyone who wants to contribute:
 - Manually pin specific skills/bosses instead of "auto top N"
 - Group/clan support (WOM has group endpoints) instead of a single account
 - Customizable colors (currently uses the Plasma theme's colors)
-- A configurable minimum gp threshold for valuable drops
-- Collection log total (obtained/total) as its own stat, e.g. next to Overall
+- More RuneProfile activity types as slide content options: level ups,
+  quests completed, achievement diary tiers completed
+- Combat achievement tier *progress* (e.g. "Easy 39/41") as its own slide,
+  rather than only the most recent tasks completed
 
 ## Known limitation: data lags while you're logged in
 
