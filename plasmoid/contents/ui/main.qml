@@ -26,23 +26,54 @@ PlasmoidItem {
     readonly property var overallData: root.womData.overall ? root.womData.overall : null
     readonly property var skillsData: root.womData.top_skills ? root.womData.top_skills : []
     readonly property var bossesData: root.womData.top_bosses ? root.womData.top_bosses : []
+    readonly property var valuableDrops: root.womData.valuable_drops ? root.womData.valuable_drops : []
+    readonly property var newItems: root.womData.new_items ? root.womData.new_items : []
+    readonly property var combatAchievements: root.womData.combat_achievements ? root.womData.combat_achievements : []
+    readonly property var xpMilestones: root.womData.xp_milestones ? root.womData.xp_milestones : []
 
-    // Shows `rowsPerPage` items at a time, rotating through the rest (like a
-    // display sign) so skill_top_n/boss_top_n can be set higher than what
-    // actually fits in the fixed-height card.
+    // The two side columns cycle through three synchronized "slides" like a
+    // display sign: (skills, XP milestones) -> (valuable drops, new collection
+    // log items) -> (bosses, combat achievements) -> back to the start. If
+    // skill_top_n/boss_top_n is set above rowsPerPage, that slide itself gets
+    // extra sub-pages (still paired with the same milestones/CAs content).
     readonly property int rowsPerPage: 3
     readonly property int rotationSeconds: Plasmoid.configuration.rotationSeconds
     property int rotationPage: 0
+
     readonly property int skillPageCount: Math.max(1, Math.ceil(root.skillsData.length / root.rowsPerPage))
     readonly property int bossPageCount: Math.max(1, Math.ceil(root.bossesData.length / root.rowsPerPage))
-    readonly property int skillPageOffset: (root.rotationPage % root.skillPageCount) * root.rowsPerPage
-    readonly property int bossPageOffset: (root.rotationPage % root.bossPageCount) * root.rowsPerPage
-    readonly property var visibleSkills: root.skillsData.slice(root.skillPageOffset, root.skillPageOffset + root.rowsPerPage)
-    readonly property var visibleBosses: root.bossesData.slice(root.bossPageOffset, root.bossPageOffset + root.rowsPerPage)
+    readonly property int totalSlides: root.skillPageCount + 1 + root.bossPageCount
+    readonly property int slideIndex: root.rotationPage % root.totalSlides
+    readonly property bool inDropsSlide: root.slideIndex === root.skillPageCount
+    readonly property bool inBossSlide: root.slideIndex > root.skillPageCount
+
+    readonly property int skillPageOffset: (!root.inDropsSlide && !root.inBossSlide) ? root.slideIndex * root.rowsPerPage : 0
+    readonly property int bossPageOffset: root.inBossSlide ? (root.slideIndex - root.skillPageCount - 1) * root.rowsPerPage : 0
+
+    readonly property var leftItems: root.inDropsSlide
+        ? root.valuableDrops
+        : (root.inBossSlide
+            ? root.bossesData.slice(root.bossPageOffset, root.bossPageOffset + root.rowsPerPage)
+            : root.skillsData.slice(root.skillPageOffset, root.skillPageOffset + root.rowsPerPage))
+    readonly property var rightItems: root.inDropsSlide
+        ? root.newItems
+        : (root.inBossSlide ? root.combatAchievements : root.xpMilestones)
+    readonly property int leftPageOffset: root.inDropsSlide ? 0 : (root.inBossSlide ? root.bossPageOffset : root.skillPageOffset)
+
+    readonly property string leftHeader: root.inDropsSlide
+        ? "Valuable Drops"
+        : (root.inBossSlide
+            ? (root.womData.bosses_header ? root.womData.bosses_header : "Top Bosses")
+                + (root.bossPageCount > 1 ? " (" + (root.slideIndex - root.skillPageCount) + "/" + root.bossPageCount + ")" : "")
+            : (root.womData.skills_header ? root.womData.skills_header : "Top Skills")
+                + (root.skillPageCount > 1 ? " (" + (root.slideIndex + 1) + "/" + root.skillPageCount + ")" : ""))
+    readonly property string rightHeader: root.inDropsSlide
+        ? "New Collection Log Items"
+        : (root.inBossSlide ? "Combat Achievements" : "XP Milestones")
 
     Timer {
         interval: root.rotationSeconds * 1000
-        running: root.skillPageCount > 1 || root.bossPageCount > 1
+        running: root.totalSlides > 1
         repeat: true
         onTriggered: root.rotationPage = root.rotationPage + 1
     }
@@ -427,23 +458,27 @@ PlasmoidItem {
 
             Kirigami.Separator { Layout.fillHeight: true }
 
-            // -- Top skills by XP gained --
+            // -- Left slide: skills / valuable drops / bosses (rotating) --
             ColumnLayout {
                 Layout.preferredWidth: 350
                 Layout.fillHeight: true
                 spacing: 4
 
                 Text {
-                    text: (root.womData.skills_header ? root.womData.skills_header : "Top 3 Skills")
-                        + (root.skillPageCount > 1
-                            ? " (" + (root.rotationPage % root.skillPageCount + 1) + "/" + root.skillPageCount + ")"
-                            : "")
+                    text: root.leftHeader
                     font.pixelSize: 11
                     color: Kirigami.Theme.disabledTextColor
                 }
 
+                Text {
+                    text: "No data yet"
+                    font.pixelSize: 12
+                    color: Kirigami.Theme.disabledTextColor
+                    visible: root.leftItems.length === 0
+                }
+
                 Repeater {
-                    model: root.visibleSkills
+                    model: root.leftItems
                     delegate: RowLayout {
                         required property var modelData
                         required property int index
@@ -451,14 +486,13 @@ PlasmoidItem {
 
                         Text {
                             Layout.fillWidth: true
-                            text: (root.skillPageOffset + index + 1) + ". " + modelData.name
+                            text: (root.leftPageOffset + index + 1) + ". " + modelData.name
                             font.pixelSize: 13
                             color: Kirigami.Theme.textColor
                             elide: Text.ElideRight
                         }
                         Text {
-                            text: (root.womData.value_prefix !== undefined ? root.womData.value_prefix : "+")
-                                + root.fmt(modelData.value) + " " + modelData.suffix
+                            text: modelData.prefix + root.fmt(modelData.value) + " " + modelData.suffix
                             font.pixelSize: 13
                             font.bold: true
                             color: Kirigami.Theme.positiveTextColor
@@ -471,23 +505,27 @@ PlasmoidItem {
 
             Kirigami.Separator { Layout.fillHeight: true }
 
-            // -- Top bosses by kill count --
+            // -- Right slide: XP milestones / new items / combat achievements (rotating) --
             ColumnLayout {
                 Layout.preferredWidth: 290
                 Layout.fillHeight: true
                 spacing: 4
 
                 Text {
-                    text: (root.womData.bosses_header ? root.womData.bosses_header : "Top 3 Bosses")
-                        + (root.bossPageCount > 1
-                            ? " (" + (root.rotationPage % root.bossPageCount + 1) + "/" + root.bossPageCount + ")"
-                            : "")
+                    text: root.rightHeader
                     font.pixelSize: 11
                     color: Kirigami.Theme.disabledTextColor
                 }
 
+                Text {
+                    text: "No data yet"
+                    font.pixelSize: 12
+                    color: Kirigami.Theme.disabledTextColor
+                    visible: root.rightItems.length === 0
+                }
+
                 Repeater {
-                    model: root.visibleBosses
+                    model: root.rightItems
                     delegate: RowLayout {
                         required property var modelData
                         required property int index
@@ -495,14 +533,13 @@ PlasmoidItem {
 
                         Text {
                             Layout.fillWidth: true
-                            text: (root.bossPageOffset + index + 1) + ". " + modelData.name
+                            text: (index + 1) + ". " + modelData.name
                             font.pixelSize: 13
                             color: Kirigami.Theme.textColor
                             elide: Text.ElideRight
                         }
                         Text {
-                            text: (root.womData.value_prefix !== undefined ? root.womData.value_prefix : "+")
-                                + root.fmt(modelData.value) + " " + modelData.suffix
+                            text: modelData.prefix + root.fmt(modelData.value) + " " + modelData.suffix
                             font.pixelSize: 13
                             font.bold: true
                             color: Kirigami.Theme.neutralTextColor

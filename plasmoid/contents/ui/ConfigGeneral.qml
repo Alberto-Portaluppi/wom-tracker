@@ -89,7 +89,7 @@ KCM.SimpleKCM {
 
         QQC2.SpinBox {
             id: rotationSecondsSpin
-            Kirigami.FormData.label: "Rotate skills/bosses every (seconds):"
+            Kirigami.FormData.label: "Rotate slides every (seconds):"
             from: 3
             to: 60
             stepSize: 1

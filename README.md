@@ -1,18 +1,30 @@
 # wom-tracker
 
-A KDE Plasma 6 widget that shows total XP, top skills, and top bosses for an
-Old School RuneScape account, using the [Wise Old Man](https://docs.wiseoldman.net/) API.
+A KDE Plasma 6 widget that shows total XP, top skills, top bosses, and
+recent activity (valuable drops, combat achievements, collection log items,
+XP milestones) for an Old School RuneScape account, using the
+[Wise Old Man](https://docs.wiseoldman.net/) and [RuneProfile](https://api.runeprofile.com/v1/docs)
+APIs.
 
 ## How it works
 
 - `wom_tracker/fetch.py`: a Python script (stdlib only, no dependencies) that
-  fetches the configured account's data from the WOM API, computes the top
-  skills/bosses, and writes:
+  fetches the configured account's data from the WOM and RuneProfile APIs,
+  computes the top skills/bosses and recent activity, and writes:
   - `~/.cache/wom-tracker/data.json` — the cache the widget reads
   - `~/.local/share/wom-tracker/history.db` — a small history (total XP per run, in SQLite)
 - A systemd `--user` timer runs that script periodically.
 - The widget (`plasmoid/`) reads `data.json` via a `DataSource` (`executable`
   engine, `cat`-ing the file) and refreshes itself on the same interval.
+- The two right-hand columns rotate through three synchronized slides, like
+  a display sign: (top skills, XP milestones) → (valuable drops, new
+  collection log items) → (top bosses, combat achievements completed) →
+  back to the start. If `skill_top_n`/`boss_top_n` is set above 3, that
+  slide gets extra sub-pages first, still paired with the same milestones/
+  achievements content. The activity data (drops, achievements, new items,
+  milestones) comes from [RuneProfile](https://runeprofile.com) — this
+  requires the account to be tracked there (the free RuneLite plugin does
+  this automatically); if it isn't, those slides just show "No data yet".
 - Settings live in `~/.config/wom-tracker/config.json`, editable either
   directly or through the widget's own native **Configure...** dialog
   (right-click the widget → Configure Wise Old Man Tracker), backed by a
@@ -48,8 +60,8 @@ not, remove the widget from the desktop and add it back fresh.
 
 The easiest way is right-clicking the widget → **Configure Wise Old Man
 Tracker...** → **General** tab: RSN, period, top N skills/bosses, widget
-size, the history graph's day range, and the rotation speed (when top N is
-higher than what fits) are all there, applied immediately on OK/Apply.
+size, the history graph's day range, and the slide rotation speed are all
+there, applied immediately on OK/Apply.
 
 For settings not exposed in that dialog (like the refresh interval), edit
 `~/.config/wom-tracker/config.json` directly:
@@ -70,7 +82,7 @@ For settings not exposed in that dialog (like the refresh interval), edit
 |---|---|
 | `username` | RSN of the account to track |
 | `period` | `day`, `week`, `month`, `year`, or `all_time`. With `all_time`, the top lists rank by career total (XP/KC) instead of gains over a period |
-| `skill_top_n` / `boss_top_n` | how many skills/bosses to track. Only 3 are shown at a time — if set higher, the widget rotates through them 3 at a time (like a display sign), showing a "(page/total)" indicator in the header |
+| `skill_top_n` / `boss_top_n` | how many skills/bosses to track. Only 3 are shown at a time — if set higher, the skills/bosses slide gets extra sub-pages, shown as a "(page/total)" indicator in the header |
 | `card_width` / `card_height` | widget size in pixels — useful if your panel/monitor clips the widget |
 | `refresh_minutes` | how often the systemd timer fetches new data |
 
@@ -84,6 +96,8 @@ Left here for anyone who wants to contribute:
 - Manually pin specific skills/bosses instead of "auto top N"
 - Group/clan support (WOM has group endpoints) instead of a single account
 - Customizable colors (currently uses the Plasma theme's colors)
+- A configurable minimum gp threshold for valuable drops
+- Collection log total (obtained/total) as its own stat, e.g. next to Overall
 
 ## Known limitation: data lags while you're logged in
 
