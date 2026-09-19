@@ -26,9 +26,12 @@ account, using the [Wise Old Man](https://docs.wiseoldman.net/) and
   data doesn't matter to everyone (e.g. a maxed account with quest cape
   has no use for level-up or quest-completed panels). Add panels for more.
   Every content type has its own configurable item count (3 by default) —
-  if set above 3, whichever panel shows it gets extra sub-pages on the
-  same rotation tick, paired with whatever is on the other side of that
-  panel. This is how you see all 6 combat achievement tiers, for example,
+  if set above 3, whichever panel shows it gets extra sub-pages, and that
+  panel's own on-screen time (the rotation interval) is split evenly
+  between them (e.g. a 10s panel with 2 sub-pages shows page 1 for 5s,
+  then page 2 for the next 5s, every time that panel comes up) — no need
+  to wait for the panel to cycle back around to see the rest. This is how
+  you see all 6 combat achievement tiers, for example,
   instead of only the first 3 (Easy/Medium/Hard) that fit on one page. If
   a panel's left or right side is set to "None (blank)", the other side
   stretches to fill the full width instead of leaving a dead column — and

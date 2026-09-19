@@ -39,27 +39,49 @@ PlasmoidItem {
     // with independent left/right content) like a display sign, so someone
     // who doesn't care about e.g. quests or diaries can just run 1 panel of
     // (skills, bosses) forever, while someone who wants everything can add
-    // panels up to 5. Skills/bosses sub-page on the same global tick using
-    // their own item count, so if skill_top_n/boss_top_n is above
+    // panels up to 5. Skills/bosses sub-page within that same on-screen slot
+    // using their own item count, so if skill_top_n/boss_top_n is above
     // rowsPerPage, whichever panel shows them cycles through all of their
-    // pages over multiple full rotations.
+    // pages before the panel itself changes.
     readonly property int rowsPerPage: 3
     readonly property int rotationSeconds: Plasmoid.configuration.rotationSeconds
     property int rotationPage: 0
     readonly property int panelCount: Math.max(1, Math.min(5, Plasmoid.configuration.panelCount))
     readonly property int slideIndex: root.rotationPage % root.panelCount
+    // How far we are into the current panel's on-screen slot, in ms, reset
+    // to 0 every time the panel changes (see slideTimer below). Sub-pages
+    // divide this slot's duration evenly amongst themselves instead of only
+    // changing when the panel comes back around on a later rotation — e.g.
+    // a 10s slot with 2 sub-pages shows page 1 for the first 5s and page 2
+    // for the last 5s, every single time that panel is shown.
+    property real slideElapsedMs: 0
+
+    Timer {
+        id: slideTimer
+        interval: 250
+        running: true
+        repeat: true
+        onTriggered: {
+            root.slideElapsedMs += interval
+            if (root.slideElapsedMs >= root.rotationSeconds * 1000) {
+                root.slideElapsedMs = 0
+                root.rotationPage = root.rotationPage + 1
+            }
+        }
+    }
 
     // Every content type can now have more items than fit in one page (each
     // count is independently configurable), so this is generic: whichever
-    // panel shows it sub-pages through the rest on the same global rotation
-    // tick, using that content's own item count for the page math. When a
-    // panel side is "alone" (the other side is blank and it fills the full
-    // width), it gets double the per-page capacity laid out as 2 sub-columns
-    // instead of pagination, so e.g. 6 configured items show all at once.
+    // panel shows it divides its own on-screen time evenly across however
+    // many sub-pages it needs. When a panel side is "alone" (the other side
+    // is blank and it fills the full width), it gets double the per-page
+    // capacity laid out as 2 sub-columns instead of pagination, so e.g. 6
+    // configured items show all at once.
     function paginatedContent(items, header, color, colorName, alone) {
         const perPage = alone ? root.rowsPerPage * 2 : root.rowsPerPage
         const pageCount = Math.max(1, Math.ceil(items.length / perPage))
-        const subPage = root.rotationPage % pageCount
+        const slotMs = root.rotationSeconds * 1000
+        const subPage = Math.min(pageCount - 1, Math.floor(root.slideElapsedMs / (slotMs / pageCount)))
         const offset = subPage * perPage
         const pageSuffix = pageCount > 1 ? " (" + (subPage + 1) + "/" + pageCount + ")" : ""
         const pageItems = items.slice(offset, offset + perPage)
@@ -134,15 +156,6 @@ PlasmoidItem {
     readonly property string leftHeader: root.leftContent.header
     readonly property string rightHeader: root.rightContent.header
     readonly property int leftPageOffset: root.leftContent.offset
-
-    // Always runs: even with a single panel, its own content might have more
-    // items than fit on one page and need to sub-page on this same tick.
-    Timer {
-        interval: root.rotationSeconds * 1000
-        running: true
-        repeat: true
-        onTriggered: root.rotationPage = root.rotationPage + 1
-    }
 
     property var historyPoints: []
     readonly property int historyDays: Plasmoid.configuration.historyDays
