@@ -103,20 +103,6 @@ KCM.SimpleKCM {
         }
 
         QQC2.SpinBox {
-            id: skillTopNSpin
-            Kirigami.FormData.label: "Top N skills:"
-            from: 1
-            to: 12
-        }
-
-        QQC2.SpinBox {
-            id: bossTopNSpin
-            Kirigami.FormData.label: "Top N bosses:"
-            from: 1
-            to: 12
-        }
-
-        QQC2.SpinBox {
             id: cardWidthSpin
             Kirigami.FormData.label: "Widget width (px):"
             from: 300
@@ -244,6 +230,18 @@ KCM.SimpleKCM {
             Kirigami.FormData.isSection: true
         }
 
+        QQC2.SpinBox {
+            id: skillTopNSpin
+            Kirigami.FormData.label: "Top skills:"
+            from: 1
+            to: 12
+        }
+        QQC2.SpinBox {
+            id: bossTopNSpin
+            Kirigami.FormData.label: "Top bosses:"
+            from: 1
+            to: 12
+        }
         QQC2.SpinBox {
             id: valuableDropsNSpin
             Kirigami.FormData.label: "Valuable drops:"
